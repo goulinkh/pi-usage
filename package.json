@@ -1,13 +1,33 @@
 {
   "name": "@goulinkh/pi-usage",
   "version": "0.1.14",
-  "description": "Usage footer extension for pi, currently supporting Codex",
+  "type": "module",
+  "description": "Provider-aware usage footer extension for pi, supporting Codex and GitHub Copilot",
   "keywords": [
     "pi-package",
     "pi-extension",
     "codex",
+    "copilot",
     "usage"
   ],
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "imports": {
+    "#usage": "./src/usage/index.ts"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^1.1.0",
+    "@types/node": "^22.19.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",

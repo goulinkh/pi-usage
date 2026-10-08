@@ -1,8 +1,11 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { SPARK_MODEL_ID, type PercentMode, type Theme, type UsageSnapshot } from "./domain";
+import { USAGE_ICONS } from "./constants";
+import type { PercentMode, Theme, UsageSnapshot } from "./types";
 
-function modelLabel(modelId: string | undefined): string {
-	return modelId === SPARK_MODEL_ID ? "Codex Spark" : "Codex";
+function getProviderIcon(label: string): string {
+	if (label === "Copilot") return USAGE_ICONS.copilot;
+	if (label === "Codex Spark") return `${USAGE_ICONS.codex} ${USAGE_ICONS.spark}`;
+	return label === "Codex" ? USAGE_ICONS.codex : label;
 }
 
 function formatPercent(theme: Theme, leftPercent: number | null, mode: PercentMode): string {
@@ -26,20 +29,21 @@ function formatCountdown(seconds: number | null): string | null {
 	return minutes ? `${minutes}m` : `${total % 60}s`;
 }
 
-export function formatStatus(ctx: ExtensionContext, usage: UsageSnapshot, usageMode: PercentMode, modelId: string | undefined): string {
+/** Format a normalized snapshot with Nerd Font provider/reset icons and a shared percentage mode. */
+export function formatStatus(ctx: ExtensionContext, usage: UsageSnapshot, usageMode: PercentMode): string {
 	const theme = ctx.ui.theme;
-	const title = theme.fg(usage.isLimited ? "error" : "dim", modelLabel(modelId));
-	const usageText = [
-		...(usage.fiveHour ? [{ label: "5h:", usage: usage.fiveHour }] : []),
-		{ label: "7d:", usage: usage.sevenDay },
-	].map(window => {
-		const reset = formatCountdown(window.usage.resetInSeconds);
-		const resetText = reset ? theme.fg("dim", ` (↺${reset})`) : "";
-		return `${theme.fg("dim", window.label)}${formatPercent(theme, window.usage.leftPercent, usageMode)}${resetText}`;
+	const title = theme.fg(usage.isLimited ? "error" : "dim", getProviderIcon(usage.label));
+	const usageText = usage.windows.map(window => {
+		const reset = window.unlimited ? null : formatCountdown(window.resetInSeconds);
+		const resetText = reset ? theme.fg("dim", ` (${USAGE_ICONS.reset}${reset})`) : "";
+		const percent = window.unlimited ? theme.fg("success", USAGE_ICONS.unlimited) : formatPercent(theme, window.leftPercent, usageMode);
+		const windowLabel = usage.provider === "github-copilot" ? "" : theme.fg("dim", `${window.label}:`);
+		return `${windowLabel}${percent}${resetText}`;
 	}).join(" ");
 	return `${title} ${usageText}`;
 }
 
-export function unavailableStatus(ctx: ExtensionContext, modelId: string | undefined): string {
-	return ctx.ui.theme.fg("warning", `${modelLabel(modelId)} unavailable`);
+/** Format a supported provider's transient retrieval failure. */
+export function unavailableStatus(ctx: ExtensionContext, label: string): string {
+	return ctx.ui.theme.fg("warning", `${getProviderIcon(label)} unavailable`);
 }

@@ -10,12 +10,12 @@ Read the applicable guides in [docs/code-standards/](docs/code-standards/) befor
 
 ## Project context
 
-- `pi-usage` is a footer status extension for pi, currently supporting Codex.
+- `pi-usage` is a provider-aware footer status extension for pi, supporting Codex and GitHub Copilot.
 - `extensions/usage-status.ts` owns extension registration and lifecycle behavior.
-- `src/usage/` owns usage retrieval, formatting, commands, and preferences.
+- `src/usage/` owns usage retrieval, formatting, commands, and preferences. `fetch/` contains provider adapters; normalized snapshots carry provider-specific quota labels.
 - `README.md` documents installation and user-facing commands and settings; `assets/` contains the footer preview.
 - The package is installed from GitHub, not npm. Keep installation instructions accurate.
-- Preserve provider-specific identifiers such as `openai-codex`; the project rename does not change the provider's API or authentication contract.
+- Preserve provider-specific identifiers such as `openai-codex` and `github-copilot`; the project rename does not change provider API or authentication contracts.
 
 ## Working rules
 

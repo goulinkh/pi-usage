@@ -2,7 +2,7 @@
 
 ![pi-usage footer preview](assets/pi-usage-screen.svg)
 
-Footer status extension for [pi](https://github.com/earendil-works/pi-mono/tree/main/packages/coding-agent) that shows available usage windows. Currently supports Codex.
+Footer status extension for [pi](https://github.com/earendil-works/pi-mono/tree/main/packages/coding-agent) that shows account usage for the selected model's provider. Supports **Codex** and **GitHub Copilot**.
 
 ## Install
 
@@ -14,7 +14,24 @@ pi install git:github.com/goulinkh/pi-usage
 
 ## Authentication
 
-Sign in to `openai-codex` in pi (`/login openai-codex`). The footer shows usage for this account, not the `openai` account. If you use multiple accounts, sign in to both providers with the same account.
+Sign in to the providers you use with pi's OAuth login:
+
+| Provider | Login | Footer usage |
+| --- | --- | --- |
+| Codex (`openai-codex`) | `/login openai-codex` | Codex rate-limit windows, including separate Spark limits. |
+| Copilot (`github-copilot`) | `/login github-copilot` | Premium request quota only; chat and completions are not displayed. |
+
+Credentials are read from `$PI_CODING_AGENT_DIR/auth.json`, falling back to `~/.pi/agent/auth.json`. The extension never writes or refreshes credentials. Stored OAuth credentials are required; API-key entries are not supported.
+
+Codex usage belongs to the `openai-codex` account, not the `openai` account. Copilot usage uses the GitHub token stored in pi's OAuth `refresh` field, not its short-lived inference `access` token. GitHub Enterprise domains configured during pi login are respected.
+
+## Provider selection
+
+The footer follows the selected model's **provider**, not its model name. For example, a GPT model served by Copilot shows Copilot quotas rather than Codex usage. Switching providers clears the previous provider's footer immediately; late requests cannot overwrite the new provider's status.
+
+**Behavior change from the Codex-only extension:** unsupported providers and accounts without OAuth credentials now hide the usage footer, rather than showing Codex usage regardless of provider. Retrieval failures show the selected provider's icon followed by `unavailable`.
+
+Usage refreshes on session startup, model changes, turn completion, and every 60 seconds. Both providers use account-level usage, not token usage for the current pi session. The providers' usage endpoints are internal APIs and may change.
 
 ## Commands
 
@@ -39,8 +56,46 @@ The extension persists the display preference in pi's `settings.json` under:
 - Settings file path: `$PI_CODING_AGENT_DIR/settings.json`
 - Fallback when the environment variable is unset: `~/.pi/agent/settings.json`
 - The default is `usageMode: "left"`.
+- `usagePlacement` defaults to `"footer"`. Set it to `"belowEditor"` when a custom footer (for example `better-claude-code-ui`) does not render extension statuses:
+
+  ```json
+  {
+    "pi-usage": {
+      "usageMode": "left",
+      "usagePlacement": "belowEditor"
+    }
+  }
+  ```
+
+  This displays the same compact usage line below the editor without replacing the custom footer. RPC mode falls back to status text. Run `/reload` after changing placement; `/usage-mode` preserves it.
 
 Example outputs:
 
-- A response with only a primary window → `Codex 7d:97% left (↺6d22h)`
-- A response with a secondary window → `Codex 5h:81% left (↺2h10m) 7d:64% left (↺6d22h)`
+- Codex with only a primary window → ` 7d:97% left (󰔛6d22h)`
+- Codex with a secondary window → ` 5h:81% left (󰔛2h10m) 7d:64% left (󰔛6d22h)`
+- Copilot premium → ` 95% left (󰔛23d13h)`
+
+Copilot displays only its premium request quota, with GitHub's reported reset date. Chat and completion quotas do not appear or affect the premium quota's limited state. Unlimited premium stays `󰛤` in either display mode; missing values show `--`.
+
+### Nerd Font icons
+
+Use a recent [Nerd Font](https://www.nerdfonts.com/) in your terminal; otherwise icons may appear as boxes. Provider icons replace long names to keep the footer compact:
+
+| Icon | Meaning | Nerd Font glyph |
+| --- | --- | --- |
+| `` | Codex | `nf-fa-terminal` |
+| ` 󰫢` | Codex Spark | terminal + `nf-md-star_four_points` |
+| `` | Copilot premium | `nf-oct-copilot` |
+| `󰔛` | Time until quota reset | `nf-md-timer_outline` |
+| `󰛤` | Unlimited quota | `nf-md-infinity` |
+
+## Development
+
+```bash
+npm ci --ignore-scripts
+npm test
+npm run test:coverage
+npm run typecheck
+```
+
+Tests use temporary pi agent directories, synthetic credentials, and mocked usage requests. Coverage thresholds are 95% for statements, branches, functions, and lines.

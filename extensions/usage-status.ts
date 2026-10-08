@@ -1,9 +1,10 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { parseUsageMode, usageModeCompletions } from "../src/usage/commands";
-import { formatStatus, unavailableStatus } from "../src/usage/format";
-import { loadUsageMode, saveUsageMode, SETTINGS_FILE } from "../src/usage/preferences";
-import { DEFAULT_USAGE_MODE, errorMessage, type PercentMode, type UsageSnapshot } from "../src/usage/domain";
-import { getUsage, MISSING_AUTH_ERROR } from "../src/usage/usage";
+import {
+	DEFAULT_USAGE_MODE, DEFAULT_USAGE_PLACEMENT, errorMessage, formatStatus, getUsage, getUsageLabel,
+	loadUsagePreferences, MissingAuthError, parseUsageMode, saveUsageMode, SETTINGS_FILE,
+	unavailableStatus, usageModeCompletions,
+	type PercentMode, type UsageModel, type UsagePlacement, type UsageSnapshot,
+} from "#usage";
 
 const EXTENSION_ID = "pi-usage";
 const REFRESH_INTERVAL_MS = 60_000;
@@ -13,16 +14,19 @@ class UsageStatus {
 	private generation = 0;
 	private timer?: ReturnType<typeof setInterval>;
 	private inFlight = false;
-	private queued?: { ctx: ExtensionContext; generation: number; modelId?: string };
+	private queued?: { ctx: ExtensionContext; generation: number; revision: number; model?: UsageModel };
+	private model?: UsageModel;
+	private modelRevision = 0;
 	private lastUsage?: UsageSnapshot;
 	private usageMode: PercentMode = DEFAULT_USAGE_MODE;
+	private usagePlacement: UsagePlacement = DEFAULT_USAGE_PLACEMENT;
 	private usageModeRevision = 0;
 	private settingsQueue: Promise<void> = Promise.resolve();
 
 	public constructor(private readonly pi: ExtensionAPI) {
 		pi.on("session_start", (_event, ctx) => this.start(ctx));
 		pi.on("turn_end", (_event, ctx) => void this.refresh(ctx));
-		pi.on("model_select", (event, ctx) => void this.refresh(ctx, event.model.id));
+		pi.on("model_select", (event, ctx) => this.selectModel(ctx, event.model));
 		pi.on("session_shutdown", (_event, ctx) => this.stop(ctx));
 
 		this.registerUsageModeCommand();
@@ -35,24 +39,47 @@ class UsageStatus {
 	private start(ctx: ExtensionContext): void {
 		this.generation++;
 		this.ctx = ctx;
+		this.model = ctx.model;
+		this.modelRevision++;
+		this.lastUsage = undefined;
 		if (this.timer) clearInterval(this.timer);
 		this.timer = setInterval(() => void this.refresh(), REFRESH_INTERVAL_MS);
 		this.timer.unref?.();
 
 		const generation = this.generation;
 		void (async () => {
-			await this.loadUsageMode(ctx, generation);
-			await this.refresh(ctx, ctx.model?.id, generation);
+			await this.loadPreferences(ctx, generation);
+			await this.refresh(ctx, this.model, generation);
 		})();
+	}
+
+	private selectModel(ctx: ExtensionContext, model: UsageModel): void {
+		this.model = model;
+		this.modelRevision++;
+		this.lastUsage = undefined;
+		if (ctx.hasUI) this.setUsageStatus(ctx, undefined);
+		void this.refresh(ctx, model);
 	}
 
 	private stop(ctx: ExtensionContext): void {
 		if (this.timer) clearInterval(this.timer);
 		this.timer = undefined;
 		this.queued = undefined;
+		this.lastUsage = undefined;
 		this.ctx = undefined;
 		this.generation++;
-		if (ctx.hasUI) ctx.ui.setStatus(EXTENSION_ID, undefined);
+		if (ctx.hasUI) this.setUsageStatus(ctx, undefined);
+	}
+
+	/** Update only this extension's status or widget; never replace another extension's footer.
+	 * @note Mutates pi UI state. Terminal widgets fall back to status text in RPC mode.
+	 */
+	private setUsageStatus(ctx: ExtensionContext, text: string | undefined): void {
+		const displayAsWidget = this.usagePlacement === "belowEditor" && ctx.mode === "tui";
+		ctx.ui.setStatus(EXTENSION_ID, displayAsWidget ? undefined : text);
+		if (ctx.mode === "tui") {
+			ctx.ui.setWidget(EXTENSION_ID, displayAsWidget && text ? [text] : undefined, { placement: "belowEditor" });
+		}
 	}
 
 	private enqueueSettingsOperation<T>(operation: () => Promise<T>): Promise<T> {
@@ -61,13 +88,17 @@ class UsageStatus {
 		return result;
 	}
 
-	private async loadUsageMode(ctx: ExtensionContext, generation: number): Promise<void> {
+	private async loadPreferences(ctx: ExtensionContext, generation: number): Promise<void> {
 		const revision = this.usageModeRevision;
 		try {
-			const usageMode = await this.enqueueSettingsOperation(() => loadUsageMode());
-			if (this.isCurrent(generation) && this.usageModeRevision === revision) this.usageMode = usageMode;
+			const preferences = await this.enqueueSettingsOperation(() => loadUsagePreferences());
+			if (this.isCurrent(generation)) {
+				this.usagePlacement = preferences.usagePlacement;
+				if (this.usageModeRevision === revision) this.usageMode = preferences.usageMode;
+			}
 		} catch (error) {
 			if (!this.isCurrent(generation)) return;
+			this.usagePlacement = DEFAULT_USAGE_PLACEMENT;
 			const changedDuringLoad = this.usageModeRevision !== revision;
 			if (!changedDuringLoad) this.usageMode = DEFAULT_USAGE_MODE;
 			if (ctx.hasUI) {
@@ -77,39 +108,42 @@ class UsageStatus {
 		}
 	}
 
-	private async refresh(ctx = this.ctx, modelId = ctx?.model?.id, generation = this.generation): Promise<void> {
+	private async refresh(ctx = this.ctx, model = this.model, generation = this.generation, revision = this.modelRevision): Promise<void> {
 		if (!ctx?.hasUI || !this.isCurrent(generation)) return;
-
+		const label = getUsageLabel(model);
+		if (!label) {
+			this.lastUsage = undefined;
+			this.setUsageStatus(ctx, undefined);
+			return;
+		}
 		if (this.inFlight) {
-			this.queued = { ctx, generation, modelId };
+			this.queued = { ctx, generation, revision, model };
 			return;
 		}
 
 		this.inFlight = true;
 		try {
-			const usage = await getUsage(modelId);
-			if (!this.isCurrent(generation)) return;
-			this.lastUsage = usage;
-			ctx.ui.setStatus(EXTENSION_ID, formatStatus(ctx, usage, this.usageMode, modelId));
+			const usage = await getUsage(model);
+			if (!this.isCurrent(generation) || revision !== this.modelRevision) return;
+			this.lastUsage = usage ?? undefined;
+			this.setUsageStatus(ctx, usage ? formatStatus(ctx, usage, this.usageMode) : undefined);
 		} catch (error) {
-			if (!this.isCurrent(generation)) return;
-			if (errorMessage(error).includes(MISSING_AUTH_ERROR)) {
-				this.lastUsage = undefined;
-				ctx.ui.setStatus(EXTENSION_ID, undefined);
-			} else {
-				ctx.ui.setStatus(EXTENSION_ID, unavailableStatus(ctx, modelId));
-			}
+			if (!this.isCurrent(generation) || revision !== this.modelRevision) return;
+			this.lastUsage = undefined;
+			this.setUsageStatus(ctx, error instanceof MissingAuthError ? undefined : unavailableStatus(ctx, label));
 		} finally {
 			this.inFlight = false;
 			const queued = this.queued;
 			this.queued = undefined;
-			if (queued && this.isCurrent(queued.generation)) void this.refresh(queued.ctx, queued.modelId, queued.generation);
+			if (queued && this.isCurrent(queued.generation) && queued.revision === this.modelRevision) {
+				void this.refresh(queued.ctx, queued.model, queued.generation, queued.revision);
+			}
 		}
 	}
 
 	private renderLast(ctx: ExtensionContext): boolean {
 		if (!ctx.hasUI || !this.lastUsage) return false;
-		ctx.ui.setStatus(EXTENSION_ID, formatStatus(ctx, this.lastUsage, this.usageMode, ctx.model?.id));
+		this.setUsageStatus(ctx, formatStatus(ctx, this.lastUsage, this.usageMode));
 		return true;
 	}
 
@@ -141,6 +175,9 @@ class UsageStatus {
 	}
 }
 
+/** Register provider-aware usage status and the shared display-mode command.
+ * @note Registers lifecycle handlers and starts session-scoped polling through session_start.
+ */
 export default function (pi: ExtensionAPI) {
 	new UsageStatus(pi);
 }

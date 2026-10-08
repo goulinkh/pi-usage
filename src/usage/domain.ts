@@ -1,40 +1,12 @@
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+/** Defensive helpers for untyped JSON input and user-facing failure messages. */
+import type { JsonObject } from "./types";
 
-export type JsonObject = Record<string, unknown>;
-export type PercentMode = "left" | "used";
-export type Theme = ExtensionContext["ui"]["theme"];
-
-export type UsageWindow = {
-	used_percent?: number | null;
-	reset_after_seconds?: number | null;
-	reset_at?: number | null;
-};
-
-export type RateLimitBucket = {
-	allowed?: boolean;
-	limit_reached?: boolean;
-	primary_window?: UsageWindow | null;
-	secondary_window?: UsageWindow | null;
-};
-
-export type WindowUsage = {
-	leftPercent: number | null;
-	resetInSeconds: number | null;
-};
-
-export type UsageSnapshot = {
-	fiveHour?: WindowUsage;
-	sevenDay: WindowUsage;
-	isLimited: boolean;
-};
-
-export const DEFAULT_USAGE_MODE: PercentMode = "left";
-export const SPARK_MODEL_ID = "gpt-5.3-codex-spark";
-
+/** Accept non-array objects from untyped JSON values. */
 export function asObject(value: unknown): JsonObject | undefined {
 	return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : undefined;
 }
 
+/** Extract a readable message from either an Error or a thrown primitive. */
 export function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }

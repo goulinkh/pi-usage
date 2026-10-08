@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="360" viewBox="0 0 1100 360" role="img" aria-labelledby="title description">
   <title id="title">pi-usage footer preview</title>
-  <desc id="description">Pi with the pi-usage extension displaying Codex usage windows and time until reset.</desc>
+  <desc id="description">Pi with the pi-usage extension displaying only Copilot premium: 95% left, resetting in 23 days and 13 hours. Simplified vector provider and timer icons keep this preview readable without installed Nerd Fonts.</desc>
   <rect width="1100" height="360" rx="24" fill="#0b0e12"/>
   <rect x="1" y="1" width="1098" height="358" rx="23" fill="none" stroke="#565b63" stroke-width="2"/>
   <text x="550" y="40" text-anchor="middle" fill="#e5e7eb" font-family="sans-serif" font-size="20">π - pi-usage</text>
@@ -11,7 +11,19 @@
     <rect x="32" y="193" width="12" height="24" fill="#e5e7eb"/>
     <text x="32" y="267" fill="#8b8b8b">~/dev/pi-usage (main)</text>
     <text x="32" y="297" fill="#8b8b8b">$0.000 (sub) 0.0%/272k</text>
-    <text x="1068" y="297" text-anchor="end" fill="#8b8b8b">gpt-5.3-codex • high</text>
-    <text x="32" y="327"><tspan fill="#8b8b8b">Codex 5h:</tspan><tspan fill="#a6c76e">92% left</tspan><tspan fill="#8b8b8b"> (↺2h10m) 7d:</tspan><tspan fill="#a6c76e">48% left</tspan><tspan fill="#8b8b8b"> (↺6d22h)</tspan></text>
+    <text x="1068" y="297" text-anchor="end" fill="#8b8b8b">github-copilot/gpt-5.3-codex • high</text>
+    <g transform="translate(32 308)" fill="none" stroke="#8b8b8b" stroke-width="2" stroke-linejoin="round">
+      <path d="M3 12C3 2 27 2 27 12M3 14V20L9 24H21L27 20V14"/>
+      <rect x="1" y="9" width="12" height="9" rx="4"/>
+      <rect x="17" y="9" width="12" height="9" rx="4"/>
+      <path d="M13 13H17M11 23V27M19 23V27"/>
+    </g>
+    <text x="80" y="327" fill="#a6c76e">95% left</text>
+    <text x="195" y="327" fill="#8b8b8b">(</text>
+    <g transform="translate(212 308)" fill="none" stroke="#8b8b8b" stroke-width="2" stroke-linecap="round">
+      <circle cx="11" cy="13" r="9"/>
+      <path d="M8 1H14M11 1V4M11 8V14L15 16M18 4L20 2"/>
+    </g>
+    <text x="241" y="327" fill="#8b8b8b">23d13h)</text>
   </g>
 </svg>
