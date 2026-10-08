@@ -3,7 +3,10 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 export type JsonObject = Record<string, unknown>;
 export type PercentMode = "left" | "used";
-export type UsagePlacement = "footer" | "belowEditor";
+/** Where usage is displayed.
+ * @experimental inlineFooter wraps the public UI callback and requires loading before the custom footer.
+ */
+export type UsagePlacement = "footer" | "belowEditor" | "inlineFooter";
 export type UsagePreferences = { usageMode: PercentMode; usagePlacement: UsagePlacement };
 export type Theme = ExtensionContext["ui"]["theme"];
 export type UsageProvider = "openai-codex" | "github-copilot";

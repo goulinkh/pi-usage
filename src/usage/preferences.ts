@@ -34,9 +34,10 @@ async function writeJson(file: string, value: unknown): Promise<void> {
 export async function loadUsagePreferences(): Promise<UsagePreferences> {
 	const preferences = asObject((await readJsonObject(SETTINGS_FILE))[SETTINGS_KEY]);
 	const usageMode = preferences?.usageMode;
+	const usagePlacement = preferences?.usagePlacement;
 	return {
 		usageMode: usageMode === "left" || usageMode === "used" ? usageMode : DEFAULT_USAGE_MODE,
-		usagePlacement: preferences?.usagePlacement === "belowEditor" ? "belowEditor" : DEFAULT_USAGE_PLACEMENT,
+		usagePlacement: usagePlacement === "belowEditor" || usagePlacement === "inlineFooter" ? usagePlacement : DEFAULT_USAGE_PLACEMENT,
 	};
 }
 

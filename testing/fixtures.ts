@@ -20,6 +20,8 @@ export const auth = {
 	"github-copilot": { type: "oauth", access: "short-lived-copilot-token", refresh: "github-test-token" },
 };
 
+export const customFooterLine = "gpt-test · /work/project · ⎇ main · ctx 89% · $2.50 · 1h 11m 44s · 5 turns";
+
 export const codexResponse = {
 	rate_limit: {
 		allowed: true,

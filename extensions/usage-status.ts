@@ -1,6 +1,6 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
-	DEFAULT_USAGE_MODE, DEFAULT_USAGE_PLACEMENT, errorMessage, formatStatus, getUsage, getUsageLabel,
+	appendFooterStatus, DEFAULT_USAGE_MODE, DEFAULT_USAGE_PLACEMENT, errorMessage, formatStatus, getUsage, getUsageLabel,
 	loadUsagePreferences, MissingAuthError, parseUsageMode, saveUsageMode, SETTINGS_FILE,
 	unavailableStatus, usageModeCompletions,
 	type PercentMode, type UsageModel, type UsagePlacement, type UsageSnapshot,
@@ -22,6 +22,7 @@ class UsageStatus {
 	private usagePlacement: UsagePlacement = DEFAULT_USAGE_PLACEMENT;
 	private usageModeRevision = 0;
 	private settingsQueue: Promise<void> = Promise.resolve();
+	private restoreFooter?: () => void;
 
 	public constructor(private readonly pi: ExtensionAPI) {
 		pi.on("session_start", (_event, ctx) => this.start(ctx));
@@ -36,7 +37,9 @@ class UsageStatus {
 		return this.ctx !== undefined && this.generation === generation;
 	}
 
-	private start(ctx: ExtensionContext): void {
+	private async start(ctx: ExtensionContext): Promise<void> {
+		this.restoreFooter?.();
+		this.restoreFooter = undefined;
 		this.generation++;
 		this.ctx = ctx;
 		this.model = ctx.model;
@@ -47,10 +50,12 @@ class UsageStatus {
 		this.timer.unref?.();
 
 		const generation = this.generation;
-		void (async () => {
-			await this.loadPreferences(ctx, generation);
-			await this.refresh(ctx, this.model, generation);
-		})();
+		await this.loadPreferences(ctx, generation);
+		if (!this.isCurrent(generation)) return;
+		if (ctx.hasUI && ctx.mode === "tui" && this.usagePlacement === "inlineFooter") {
+			this.restoreFooter = appendFooterStatus(ctx.ui, EXTENSION_ID);
+		}
+		void this.refresh(ctx, this.model, generation);
 	}
 
 	private selectModel(ctx: ExtensionContext, model: UsageModel): void {
@@ -62,6 +67,8 @@ class UsageStatus {
 	}
 
 	private stop(ctx: ExtensionContext): void {
+		this.restoreFooter?.();
+		this.restoreFooter = undefined;
 		if (this.timer) clearInterval(this.timer);
 		this.timer = undefined;
 		this.queued = undefined;

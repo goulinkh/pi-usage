@@ -33,9 +33,9 @@ describe("loadUsagePreferences", () => {
 	it("defaults absent preferences to left and footer", async () => {
 		expect(await loadUsagePreferences()).toEqual({ usageMode: "left", usagePlacement: "footer" });
 	});
-	it("loads below-editor placement with the shared mode", async () => {
-		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "used", usagePlacement: "belowEditor" } });
-		expect(await loadUsagePreferences()).toEqual({ usageMode: "used", usagePlacement: "belowEditor" });
+	it.each(["belowEditor", "inlineFooter"])("loads %s placement with the shared mode", async usagePlacement => {
+		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "used", usagePlacement } });
+		expect(await loadUsagePreferences()).toEqual({ usageMode: "used", usagePlacement });
 	});
 	it("defaults unknown placement values without losing a valid mode", async () => {
 		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "used", usagePlacement: "invalid" } });
@@ -53,10 +53,10 @@ describe("saveUsageMode", () => {
 		await saveUsageMode("used");
 		expect(JSON.parse(await readFile(SETTINGS_FILE, "utf8"))).toEqual({ theme: "dark", "pi-usage": { usageMode: "used" } });
 	});
-	it("preserves the custom-footer placement when changing mode", async () => {
-		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "left", usagePlacement: "belowEditor" } });
+	it.each(["belowEditor", "inlineFooter"])("preserves %s placement when changing mode", async usagePlacement => {
+		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "left", usagePlacement } });
 		await saveUsageMode("used");
-		expect(JSON.parse(await readFile(SETTINGS_FILE, "utf8"))).toEqual({ "pi-usage": { usageMode: "used", usagePlacement: "belowEditor" } });
+		expect(JSON.parse(await readFile(SETTINGS_FILE, "utf8"))).toEqual({ "pi-usage": { usageMode: "used", usagePlacement } });
 	});
 	it("rejects invalid or unwritable settings rather than overwriting them", async () => {
 		await mkdir(SETTINGS_FILE, { recursive: true });

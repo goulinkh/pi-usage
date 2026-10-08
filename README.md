@@ -56,18 +56,26 @@ The extension persists the display preference in pi's `settings.json` under:
 - Settings file path: `$PI_CODING_AGENT_DIR/settings.json`
 - Fallback when the environment variable is unset: `~/.pi/agent/settings.json`
 - The default is `usageMode: "left"`.
-- `usagePlacement` defaults to `"footer"`. Set it to `"belowEditor"` when a custom footer (for example `better-claude-code-ui`) does not render extension statuses:
+- `usagePlacement` defaults to `"footer"`, using pi's extension status API.
+- For **one line** with a custom footer that ignores extension statuses (for example `better-claude-code-ui`), use `"inlineFooter"` and list pi-usage **before** that UI package:
 
   ```json
   {
+    "packages": [
+      "git:github.com/goulinkh/pi-usage",
+      "npm:better-claude-code-ui"
+    ],
     "pi-usage": {
       "usageMode": "left",
-      "usagePlacement": "belowEditor"
+      "usagePlacement": "inlineFooter"
     }
   }
   ```
 
-  This displays the same compact usage line below the editor without replacing the custom footer. RPC mode falls back to status text. Run `/reload` after changing placement; `/usage-mode` preserves it.
+  Keep your other packages. This experimental adapter wraps the public custom-footer callback and appends usage to its existing last row, preserving its model, directory, branch, context, cost, and session details. It does not copy or patch the UI package. Narrow terminals reserve room for usage and truncate the remaining text instead of adding rows. It must load before the custom footer registers; it does not replace pi's built-in footer.
+- Use `"belowEditor"` only if you prefer a **separate** usage row beneath the editor. This does not replace the custom footer.
+
+RPC mode falls back to status text for both alternatives. Run `/reload` after changing placement or package order; `/usage-mode` preserves placement.
 
 Example outputs:
 
