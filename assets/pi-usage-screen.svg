@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="360" viewBox="0 0 1100 360" role="img" aria-labelledby="title description">
+  <title id="title">pi-usage footer preview</title>
+  <desc id="description">Pi with the pi-usage extension displaying Codex usage windows and time until reset.</desc>
+  <rect width="1100" height="360" rx="24" fill="#0b0e12"/>
+  <rect x="1" y="1" width="1098" height="358" rx="23" fill="none" stroke="#565b63" stroke-width="2"/>
+  <text x="550" y="40" text-anchor="middle" fill="#e5e7eb" font-family="sans-serif" font-size="20">π - pi-usage</text>
+  <g font-family="monospace" font-size="22">
+    <text x="32" y="90" fill="#83a7c4">git:github.com/goulinkh/pi-usage</text>
+    <text x="56" y="120" fill="#8b8b8b">extensions/usage-status.ts</text>
+    <path d="M 24 180 H 1076 M 24 230 H 1076" stroke="#a58aac" stroke-width="2"/>
+    <rect x="32" y="193" width="12" height="24" fill="#e5e7eb"/>
+    <text x="32" y="267" fill="#8b8b8b">~/dev/pi-usage (main)</text>
+    <text x="32" y="297" fill="#8b8b8b">$0.000 (sub) 0.0%/272k</text>
+    <text x="1068" y="297" text-anchor="end" fill="#8b8b8b">gpt-5.3-codex • high</text>
+    <text x="32" y="327"><tspan fill="#8b8b8b">Codex 5h:</tspan><tspan fill="#a6c76e">92% left</tspan><tspan fill="#8b8b8b"> (↺2h10m) 7d:</tspan><tspan fill="#a6c76e">48% left</tspan><tspan fill="#8b8b8b"> (↺6d22h)</tspan></text>
+  </g>
+</svg>

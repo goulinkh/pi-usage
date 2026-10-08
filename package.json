@@ -1,19 +1,20 @@
 {
-  "name": "@calesennett/pi-codex-usage",
+  "name": "@goulinkh/pi-usage",
   "version": "0.1.14",
-  "description": "Codex usage footer extension for pi",
+  "description": "Usage footer extension for pi, currently supporting Codex",
   "keywords": [
     "pi-package",
     "pi-extension",
-    "codex"
+    "codex",
+    "usage"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/calesennett/pi-codex-usage.git"
+    "url": "git+https://github.com/goulinkh/pi-usage.git"
   },
-  "homepage": "https://github.com/calesennett/pi-codex-usage#readme",
+  "homepage": "https://github.com/goulinkh/pi-usage#readme",
   "bugs": {
-    "url": "https://github.com/calesennett/pi-codex-usage/issues"
+    "url": "https://github.com/goulinkh/pi-usage/issues"
   }
 }

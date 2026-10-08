@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { asObject, DEFAULT_USAGE_MODE, type JsonObject, type PercentMode } from "./domain";
 
-export const SETTINGS_KEY = "pi-codex-usage";
+export const SETTINGS_KEY = "pi-usage";
 
 const agentDir = process.env.PI_CODING_AGENT_DIR?.trim() || path.join(os.homedir(), ".pi", "agent");
 export const AUTH_FILE = path.join(agentDir, "auth.json");

@@ -1,14 +1,14 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { parseUsageMode, usageModeCompletions } from "../src/codex-usage/commands";
-import { formatStatus, unavailableStatus } from "../src/codex-usage/format";
-import { loadUsageMode, saveUsageMode, SETTINGS_FILE } from "../src/codex-usage/preferences";
-import { DEFAULT_USAGE_MODE, errorMessage, type PercentMode, type UsageSnapshot } from "../src/codex-usage/domain";
-import { getUsage, MISSING_AUTH_ERROR } from "../src/codex-usage/usage";
+import { parseUsageMode, usageModeCompletions } from "../src/usage/commands";
+import { formatStatus, unavailableStatus } from "../src/usage/format";
+import { loadUsageMode, saveUsageMode, SETTINGS_FILE } from "../src/usage/preferences";
+import { DEFAULT_USAGE_MODE, errorMessage, type PercentMode, type UsageSnapshot } from "../src/usage/domain";
+import { getUsage, MISSING_AUTH_ERROR } from "../src/usage/usage";
 
-const EXTENSION_ID = "codex-usage";
+const EXTENSION_ID = "pi-usage";
 const REFRESH_INTERVAL_MS = 60_000;
 
-class CodexUsageStatus {
+class UsageStatus {
 	private ctx?: ExtensionContext;
 	private generation = 0;
 	private timer?: ReturnType<typeof setInterval>;
@@ -72,7 +72,7 @@ class CodexUsageStatus {
 			if (!changedDuringLoad) this.usageMode = DEFAULT_USAGE_MODE;
 			if (ctx.hasUI) {
 				const action = changedDuringLoad ? "keeping current mode" : "using default";
-				ctx.ui.notify(`pi-codex-usage: failed to load ${SETTINGS_FILE}, ${action}: ${errorMessage(error)}`, "warning");
+				ctx.ui.notify(`pi-usage: failed to load ${SETTINGS_FILE}, ${action}: ${errorMessage(error)}`, "warning");
 			}
 		}
 	}
@@ -119,14 +119,14 @@ class CodexUsageStatus {
 		void result.catch(error => {
 			const notifyContext = this.ctx ?? ctx;
 			if (this.isCurrent(generation) && notifyContext.hasUI) {
-				notifyContext.ui.notify(`pi-codex-usage: failed to write ${SETTINGS_FILE}: ${errorMessage(error)}`, "warning");
+				notifyContext.ui.notify(`pi-usage: failed to write ${SETTINGS_FILE}: ${errorMessage(error)}`, "warning");
 			}
 		});
 	}
 
 	private registerUsageModeCommand(): void {
-		this.pi.registerCommand("codex-usage-mode", {
-			description: "Toggle Codex usage display mode, or set it explicitly: left | used",
+		this.pi.registerCommand("usage-mode", {
+			description: "Toggle usage display mode, or set it explicitly: left | used",
 			getArgumentCompletions: usageModeCompletions,
 			handler: async (args, ctx) => {
 				const usageMode = parseUsageMode(args, this.usageMode);
@@ -142,5 +142,5 @@ class CodexUsageStatus {
 }
 
 export default function (pi: ExtensionAPI) {
-	new CodexUsageStatus(pi);
+	new UsageStatus(pi);
 }

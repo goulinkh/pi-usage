@@ -1,13 +1,15 @@
-# pi-codex-usage
+# pi-usage
 
-![pi-codex-usage screenshot](https://github.com/user-attachments/assets/edb4b114-13ba-46f5-b7ab-cdcb28a8865c)
+![pi-usage footer preview](assets/pi-usage-screen.svg)
 
-Footer status extension for [pi](https://github.com/earendil-works/pi-mono/tree/main/packages/coding-agent) that shows the available Codex usage windows.
+Footer status extension for [pi](https://github.com/earendil-works/pi-mono/tree/main/packages/coding-agent) that shows available usage windows. Currently supports Codex.
 
 ## Install
 
+This package is not published to npm. Install directly from GitHub:
+
 ```bash
-pi install npm:@calesennett/pi-codex-usage
+pi install git:github.com/goulinkh/pi-usage
 ```
 
 ## Authentication
@@ -18,9 +20,9 @@ Sign in to `openai-codex` in pi (`/login openai-codex`). The footer shows usage 
 
 | Command | Effect |
 | --- | --- |
-| `/codex-usage-mode` | Toggle display mode (`left` ↔ `used`). |
-| `/codex-usage-mode left` | Show percent left. |
-| `/codex-usage-mode used` | Show percent used. |
+| `/usage-mode` | Toggle display mode (`left` ↔ `used`). |
+| `/usage-mode left` | Show percent left. |
+| `/usage-mode used` | Show percent used. |
 
 ## Settings
 
@@ -28,7 +30,7 @@ The extension persists the display preference in pi's `settings.json` under:
 
 ```json
 {
-  "pi-codex-usage": {
+  "pi-usage": {
     "usageMode": "left"
   }
 }
