@@ -137,7 +137,7 @@ class UsageStatus {
 		} catch (error) {
 			if (!this.isCurrent(generation) || revision !== this.modelRevision) return;
 			this.lastUsage = undefined;
-			this.setUsageStatus(ctx, error instanceof MissingAuthError ? undefined : unavailableStatus(ctx, label));
+			this.setUsageStatus(ctx, error instanceof MissingAuthError ? undefined : unavailableStatus(ctx));
 		} finally {
 			this.inFlight = false;
 			const queued = this.queued;

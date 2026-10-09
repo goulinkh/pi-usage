@@ -29,7 +29,7 @@ Codex usage belongs to the `openai-codex` account, not the `openai` account. Cop
 
 The footer follows the selected model's **provider**, not its model name. For example, a GPT model served by Copilot shows Copilot quotas rather than Codex usage. Switching providers clears the previous provider's footer immediately; late requests cannot overwrite the new provider's status.
 
-**Behavior change from the Codex-only extension:** unsupported providers and accounts without OAuth credentials now hide the usage footer, rather than showing Codex usage regardless of provider. Retrieval failures show the selected provider's icon followed by `unavailable`.
+**Behavior change from the Codex-only extension:** unsupported providers and accounts without OAuth credentials now hide the usage footer, rather than showing Codex usage regardless of provider. Retrieval failures show the usage icon followed by `unavailable`.
 
 Usage refreshes on session startup, model changes, turn completion, and every 60 seconds. Both providers use account-level usage, not token usage for the current pi session. The providers' usage endpoints are internal APIs and may change.
 
@@ -39,7 +39,7 @@ Usage refreshes on session startup, model changes, turn completion, and every 60
 | --- | --- |
 | `/usage-mode` | Toggle display mode (`left` ↔ `used`). |
 | `/usage-mode left` | Show percent left. |
-| `/usage-mode used` | Show percent used. |
+| `/usage-mode used` | Show percent consumed (default). |
 
 ## Settings
 
@@ -48,14 +48,14 @@ The extension persists the display preference in pi's `settings.json` under:
 ```json
 {
   "pi-usage": {
-    "usageMode": "left"
+    "usageMode": "used"
   }
 }
 ```
 
 - Settings file path: `$PI_CODING_AGENT_DIR/settings.json`
 - Fallback when the environment variable is unset: `~/.pi/agent/settings.json`
-- The default is `usageMode: "left"`.
+- The default is now `usageMode: "used"` (percentage consumed). Existing saved `"left"` preferences are preserved; run `/usage-mode used` to switch.
 - `usagePlacement` defaults to `"footer"`, using pi's extension status API.
 - For **one line** with a custom footer that ignores extension statuses (for example `better-claude-code-ui`), use `"inlineFooter"` and list pi-usage **before** that UI package:
 
@@ -66,7 +66,7 @@ The extension persists the display preference in pi's `settings.json` under:
       "npm:better-claude-code-ui"
     ],
     "pi-usage": {
-      "usageMode": "left",
+      "usageMode": "used",
       "usagePlacement": "inlineFooter"
     }
   }
@@ -77,23 +77,21 @@ The extension persists the display preference in pi's `settings.json` under:
 
 RPC mode falls back to status text for both alternatives. Run `/reload` after changing placement or package order; `/usage-mode` preserves placement.
 
-Example outputs:
+Percentages use one pie-chart usage icon, without provider names, quota labels, or `left`/`used` suffixes. Example outputs in the default consumed mode:
 
-- Codex with only a primary window → ` 7d:97% left (󰔛6d22h)`
-- Codex with a secondary window → ` 5h:81% left (󰔛2h10m) 7d:64% left (󰔛6d22h)`
-- Copilot premium → ` 95% left (󰔛23d13h)`
+- Codex with only a primary window → ` 27% (󰔛4d15h)`
+- Codex with a secondary window → ` 19% (󰔛2h10m) 36% (󰔛6d22h)`
+- Copilot premium → ` 5% (󰔛23d13h)`
 
-Copilot displays only its premium request quota, with GitHub's reported reset date. Chat and completion quotas do not appear or affect the premium quota's limited state. Unlimited premium stays `󰛤` in either display mode; missing values show `--`.
+Codex windows appear in primary-then-secondary order, each with its own reset countdown. Copilot displays only its premium request quota, with GitHub's reported reset date. Chat and completion quotas do not appear or affect the premium quota's limited state. Unlimited premium shows ` 󰛤` in either display mode; missing values show `--`.
 
 ### Nerd Font icons
 
-Use a recent [Nerd Font](https://www.nerdfonts.com/) in your terminal; otherwise icons may appear as boxes. Provider icons replace long names to keep the footer compact:
+Use a recent [Nerd Font](https://www.nerdfonts.com/) in your terminal; otherwise icons may appear as boxes. A shared usage icon keeps the footer compact across supported providers, including Spark:
 
 | Icon | Meaning | Nerd Font glyph |
 | --- | --- | --- |
-| `` | Codex | `nf-fa-terminal` |
-| ` 󰫢` | Codex Spark | terminal + `nf-md-star_four_points` |
-| `` | Copilot premium | `nf-oct-copilot` |
+| `` | Usage | `nf-fa-pie_chart` |
 | `󰔛` | Time until quota reset | `nf-md-timer_outline` |
 | `󰛤` | Unlimited quota | `nf-md-infinity` |
 

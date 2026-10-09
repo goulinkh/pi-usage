@@ -18,10 +18,10 @@ describe("readJsonObject", () => {
 });
 
 describe("loadUsageMode", () => {
-	it("defaults to left with absent or invalid preferences", async () => {
-		expect(await loadUsageMode()).toBe("left");
+	it("defaults to used with absent or invalid preferences", async () => {
+		expect(await loadUsageMode()).toBe("used");
 		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "invalid" } });
-		expect(await loadUsageMode()).toBe("left");
+		expect(await loadUsageMode()).toBe("used");
 	});
 	it.each(["left", "used"])("loads %s", async usageMode => {
 		await writeAgentFile("settings.json", { "pi-usage": { usageMode } });
@@ -30,8 +30,8 @@ describe("loadUsageMode", () => {
 });
 
 describe("loadUsagePreferences", () => {
-	it("defaults absent preferences to left and footer", async () => {
-		expect(await loadUsagePreferences()).toEqual({ usageMode: "left", usagePlacement: "footer" });
+	it("defaults absent preferences to used and footer", async () => {
+		expect(await loadUsagePreferences()).toEqual({ usageMode: "used", usagePlacement: "footer" });
 	});
 	it.each(["belowEditor", "inlineFooter"])("loads %s placement with the shared mode", async usagePlacement => {
 		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "used", usagePlacement } });

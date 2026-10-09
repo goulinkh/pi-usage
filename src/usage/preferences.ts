@@ -41,7 +41,7 @@ export async function loadUsagePreferences(): Promise<UsagePreferences> {
 	};
 }
 
-/** Read the shared display mode, defaulting invalid or absent values to left.
+/** Read the shared display mode, defaulting invalid or absent values to used.
  * @note Reads pi's settings file.
  */
 export async function loadUsageMode(): Promise<PercentMode> {

@@ -16,7 +16,7 @@ async function startCopilot() {
 	mockUsageResponse(copilotResponse);
 	harness = createExtensionHarness({ provider: "github-copilot", id: "claude-sonnet-4.6" });
 	await harness.emit("session_start");
-	await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 80% left"));
+	await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 20%"));
 	return harness;
 }
 
@@ -30,11 +30,11 @@ describe("provider-aware usage footer", () => {
 		harness = createExtensionHarness({ provider: "github-copilot", id: "gpt-5.3-codex" });
 		await harness.emit("session_start");
 		harness.installFooter(() => ({ invalidate() {}, render: width => [truncateToWidth(customFooterLine, width, "")] }));
-		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 80% left"));
-		expect(harness.renderFooter(200)).toEqual([`${customFooterLine} ·  80% left (󰔛1d0h)`]);
+		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 20%"));
+		expect(harness.renderFooter(200)).toEqual([`${customFooterLine} ·  20% (󰔛1d0h)`]);
 		expect(harness.setWidget).toHaveBeenLastCalledWith("pi-usage", undefined, { placement: "belowEditor" });
-		await harness.command("used");
-		expect(harness.renderFooter(200)).toEqual([`${customFooterLine} ·  20% used (󰔛1d0h)`]);
+		await harness.command("left");
+		expect(harness.renderFooter(200)).toEqual([`${customFooterLine} ·  80% (󰔛1d0h)`]);
 		for (const width of [0, 1, 20, 80, 151]) {
 			const lines = harness.renderFooter(width)!;
 			expect(lines).toHaveLength(1);
@@ -54,14 +54,14 @@ describe("provider-aware usage footer", () => {
 		for (let session = 0; session < 2; session++) {
 			await harness.emit("session_start");
 			harness.installFooter(() => ({ invalidate() {}, render: () => [customFooterLine] }));
-			await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 80% left"));
-			expect(harness.renderFooter(200)![0].match(//g)).toHaveLength(1);
+			await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 20%"));
+			expect(harness.renderFooter(200)![0].match(//g)).toHaveLength(1);
 		}
 	});
 
 	it("keeps a mode selected during a successful preferences load while applying inline placement", async () => {
 		await writeAgentFile("auth.json", auth);
-		const settings = { "pi-usage": { usageMode: "left", usagePlacement: "inlineFooter" } };
+		const settings = { "pi-usage": { usageMode: "used", usagePlacement: "inlineFooter" } };
 		await writeAgentFile("settings.json", settings);
 		const pending = createDeferred<string>();
 		const readFile = fs.readFile.bind(fs);
@@ -74,12 +74,12 @@ describe("provider-aware usage footer", () => {
 		harness = createExtensionHarness({ provider: "github-copilot", id: "gpt-5.3-codex" });
 		const start = harness.emit("session_start");
 		await vi.waitFor(() => expect(settingsReads).toBe(1));
-		await harness.command("used");
+		await harness.command("left");
 		pending.resolve(JSON.stringify(settings));
 		await start;
 		harness.installFooter(() => ({ invalidate() {}, render: () => [customFooterLine] }));
-		await vi.waitFor(() => expect(harness!.renderFooter(200)![0]).toContain(" 20% used"));
-		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("used"));
+		await vi.waitFor(() => expect(harness!.renderFooter(200)![0]).toContain(" 80%"));
+		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("left"));
 	});
 
 	it("can display premium below the editor without replacing a custom footer", async () => {
@@ -88,12 +88,12 @@ describe("provider-aware usage footer", () => {
 		mockUsageResponse(copilotResponse);
 		harness = createExtensionHarness({ provider: "github-copilot", id: "gpt-5.3-codex" });
 		await harness.emit("session_start");
-		await vi.waitFor(() => expect(harness!.setWidget).toHaveBeenCalledWith("pi-usage", [expect.stringMatching(/^ 80% left/)], { placement: "belowEditor" }));
+		await vi.waitFor(() => expect(harness!.setWidget).toHaveBeenCalledWith("pi-usage", [expect.stringMatching(/^ 20%/)], { placement: "belowEditor" }));
 		expect(harness.getStatus()).toBeUndefined();
 		expect(harness.ctx.ui.setFooter).toBe(harness.setFooter);
-		await harness.command("used");
-		expect(harness.setWidget).toHaveBeenLastCalledWith("pi-usage", [expect.stringMatching(/^ 20% used/)], { placement: "belowEditor" });
-		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("used"));
+		await harness.command("left");
+		expect(harness.setWidget).toHaveBeenLastCalledWith("pi-usage", [expect.stringMatching(/^ 80%/)], { placement: "belowEditor" });
+		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("left"));
 		await harness.emit("model_select", { model: { provider: "anthropic", id: "claude" } });
 		expect(harness.setWidget).toHaveBeenLastCalledWith("pi-usage", undefined, { placement: "belowEditor" });
 		await harness.emit("session_shutdown");
@@ -107,40 +107,40 @@ describe("provider-aware usage footer", () => {
 		harness = createExtensionHarness({ provider: "github-copilot", id: "gpt-5.3-codex" });
 		Object.assign(harness.ctx, { mode: "rpc" });
 		await harness.emit("session_start");
-		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 80% left"));
+		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 20%"));
 		expect(harness.setWidget).not.toHaveBeenCalled();
 		expect(harness.ctx.ui.setFooter).toBe(harness.setFooter);
 	});
 
-	it("renders Codex on startup and reuses cached usage when changing mode", async () => {
+	it("renders consumed Codex percentages by default and reuses cached usage when changing mode", async () => {
 		await writeAgentFile("auth.json", auth);
 		const fetch = mockUsageResponse(codexResponse);
 		harness = createExtensionHarness();
 		await harness.emit("session_start");
-		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" 5h:81% left (󰔛2h10m) 7d:64% left (󰔛6d22h)"));
+		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" 19% (󰔛2h10m) 36% (󰔛6d22h)"));
 		expect(harness.ctx.ui.setFooter).toBe(harness.setFooter);
-		await harness.command("used");
-		expect(harness.getStatus()).toContain(" 5h:19% used");
+		await harness.command("left");
+		expect(harness.getStatus()).toBe(" 81% (󰔛2h10m) 64% (󰔛6d22h)");
+		expect(fetch).toHaveBeenCalledTimes(1);
+		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("left"));
+		await harness.command("");
+		expect(harness.getStatus()).toBe(" 19% (󰔛2h10m) 36% (󰔛6d22h)");
 		expect(fetch).toHaveBeenCalledTimes(1);
 		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("used"));
-		await harness.command("");
-		expect(harness.getStatus()).toContain("81% left");
-		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("left"));
 		const count = harness.setStatus.mock.calls.length;
 		await harness.command("invalid");
 		expect(harness.setStatus).toHaveBeenCalledTimes(count);
 	});
 
-	it("renders only Copilot premium and honors the saved shared display preference", async () => {
+	it.each(["left", "used"])("renders only Copilot premium and honors saved %s mode", async usageMode => {
 		vi.useFakeTimers({ toFake: ["Date"] });
 		vi.setSystemTime(new Date("2029-12-31T00:00:00Z"));
-		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "used" } });
+		await writeAgentFile("settings.json", { "pi-usage": { usageMode } });
 		await writeAgentFile("auth.json", auth);
 		mockUsageResponse(copilotResponse);
 		harness = createExtensionHarness({ provider: "github-copilot", id: "gpt-5.4" });
 		await harness.emit("session_start");
-		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 20% used"));
-		expect(harness.getStatus()).toBe(" 20% used (󰔛1d0h)");
+		await vi.waitFor(() => expect(harness!.getStatus()).toBe(` ${usageMode === "used" ? 20 : 80}% (󰔛1d0h)`));
 	});
 
 	it("routes model_select by event provider even when ctx.model is still the old model", async () => {
@@ -148,11 +148,11 @@ describe("provider-aware usage footer", () => {
 		const fetch = mockUsageResponse(codexResponse);
 		await harness.emit("model_select", { model: { provider: "openai-codex", id: "gpt-5.3-codex" } });
 		expect(harness.getStatus()).toBeUndefined();
-		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 5h:81% left"));
-		await harness.command("used");
-		expect(harness.getStatus()).toContain(" 5h:19% used");
+		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" 19% (󰔛2h10m) 36% (󰔛6d22h)"));
+		await harness.command("left");
+		expect(harness.getStatus()).toBe(" 81% (󰔛2h10m) 64% (󰔛6d22h)");
 		expect(fetch).toHaveBeenCalledTimes(1);
-		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("used"));
+		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("left"));
 	});
 
 	it("clears unsupported providers and never resurrects another provider's cached usage", async () => {
@@ -174,14 +174,14 @@ describe("provider-aware usage footer", () => {
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	it("uses the failing provider label and drops stale cached snapshots", async () => {
+	it("uses the shared icon for retrieval failures and drops stale cached snapshots", async () => {
 		harness = await startCopilot();
 		const fetch = mockUsageResponse({}, 503);
 		await harness.emit("turn_end");
-		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" unavailable"));
+		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" unavailable"));
 		await harness.command("used");
 		await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-		expect(harness.getStatus()).not.toContain("80% left");
+		expect(harness.getStatus()).not.toContain("20%");
 		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("used"));
 	});
 
@@ -194,12 +194,12 @@ describe("provider-aware usage footer", () => {
 		await harness.emit("session_start");
 		await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
 		await harness.emit("model_select", { model: { provider: "github-copilot", id: "gpt-5.4" } });
-		await harness.command("used");
-		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("used"));
+		await harness.command("left");
+		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("left"));
 		if (outcome === "resolve") pending.resolve(new Response(JSON.stringify(codexResponse)));
 		else pending.reject(new Error("stale request failed"));
-		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 20% used"));
-		expect(harness.updates.some(text => text?.startsWith(""))).toBe(false);
+		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 80%"));
+		expect(harness.updates.filter(text => text !== undefined)).toEqual([expect.stringMatching(/^ 80%/)]);
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 
@@ -242,7 +242,7 @@ describe("provider-aware usage footer", () => {
 		await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
 		await harness.emit("session_start");
 		pending.resolve(new Response(JSON.stringify(copilotResponse)));
-		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 5h:81% left"));
+		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" 19% (󰔛2h10m) 36% (󰔛6d22h)"));
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 
@@ -276,9 +276,9 @@ describe("provider-aware usage footer", () => {
 		mockUsageResponse(copilotResponse);
 		harness = createExtensionHarness({ provider: "github-copilot", id: "gpt-5.4" });
 		await harness.emit("session_start");
-		await vi.waitFor(() => expect(harness!.getStatus()).toContain("80% left"));
+		await vi.waitFor(() => expect(harness!.getStatus()).toContain("20%"));
 		expect(harness.notify).toHaveBeenCalledWith(expect.stringContaining("using default"), "warning");
-		await harness.command("used");
+		await harness.command("left");
 		await vi.waitFor(() => expect(harness!.notify).toHaveBeenCalledWith(expect.stringContaining("failed to write"), "warning"));
 	});
 
@@ -307,15 +307,15 @@ describe("provider-aware usage footer", () => {
 		const firstStart = harness.emit("session_start");
 		await vi.waitFor(() => expect(settingsReads).toBe(1));
 		const secondStart = harness.emit("session_start");
-		firstLoad.resolve(JSON.stringify({ "pi-usage": { usageMode: "used", usagePlacement: "belowEditor" } }));
+		firstLoad.resolve(JSON.stringify({ "pi-usage": { usageMode: "left", usagePlacement: "belowEditor" } }));
 		await firstStart;
 		await vi.waitFor(() => expect(settingsReads).toBe(2));
 		await harness.emit("model_select", { model: { provider: "github-copilot", id: "gpt-5.3-codex" } });
-		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 80% left"));
+		await vi.waitFor(() => expect(harness!.getStatus()).toContain(" 20%"));
 		expect(harness.setWidget).toHaveBeenLastCalledWith("pi-usage", undefined, { placement: "belowEditor" });
-		secondLoad.resolve(JSON.stringify({ "pi-usage": { usageMode: "left", usagePlacement: "footer" } }));
+		secondLoad.resolve(JSON.stringify({ "pi-usage": { usageMode: "used", usagePlacement: "footer" } }));
 		await secondStart;
-		expect(harness.getStatus()).toContain(" 80% left");
+		expect(harness.getStatus()).toContain(" 20%");
 	});
 
 	it("ignores a settings-load failure that finishes after shutdown", async () => {
@@ -351,10 +351,10 @@ describe("provider-aware usage footer", () => {
 		mockUsageResponse(copilotResponse);
 		harness = createExtensionHarness({ provider: "github-copilot", id: "gpt-5.4" });
 		const start = harness.emit("session_start");
-		await harness.command("used");
+		await harness.command("left");
 		pending.reject("settings unavailable");
 		await start;
-		await vi.waitFor(() => expect(harness!.getStatus()).toContain("20% used"));
+		await vi.waitFor(() => expect(harness!.getStatus()).toContain("80%"));
 		await vi.waitFor(() => expect(harness!.notify).toHaveBeenCalledWith(expect.stringContaining("keeping current mode"), "warning"));
 		await vi.waitFor(() => expect(harness!.notify).toHaveBeenCalledWith(expect.stringContaining("failed to write"), "warning"));
 	});
