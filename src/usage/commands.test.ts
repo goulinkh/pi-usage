@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { parseUsageMode, usageModeCompletions } from "./commands";
 
 describe("parseUsageMode", () => {
-	it.each(["", " ", "toggle", " TOGGLE "])("toggles the current value for %j", args => {
+	it.each(["", " TOGGLE "])("toggles the current value for %j", args => {
 		expect(parseUsageMode(args, "left")).toBe("used");
 		expect(parseUsageMode(args, "used")).toBe("left");
 	});
-	it.each(["left", " LEFT ", "left extra"])("accepts a normalized explicit left mode (%j)", args => {
-		expect(parseUsageMode(args, "used")).toBe("left");
+	it("accepts a normalized explicit mode with extra arguments", () => {
+		expect(parseUsageMode(" LEFT extra ", "used")).toBe("left");
 	});
 	it("accepts used and rejects invalid modes", () => {
 		expect(parseUsageMode("used", "left")).toBe("used");

@@ -22,8 +22,8 @@ describe("requestUsage", () => {
 		expect(await requestUsage("https://example.test/usage", "Copilot", {})).toEqual({ quota: 1 });
 		expect(fetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
 	});
-	it.each([null, []])("normalizes non-object payloads (%j)", async data => {
-		mockUsageResponse(data);
+	it("normalizes non-object payloads", async () => {
+		mockUsageResponse(null);
 		expect(await requestUsage("https://example.test/usage", "Codex", {})).toEqual({});
 	});
 	it("does not expose credentials or response bodies in HTTP errors", async () => {

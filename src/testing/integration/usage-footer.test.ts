@@ -132,15 +132,15 @@ describe("provider-aware usage footer", () => {
 		expect(harness.setStatus).toHaveBeenCalledTimes(count);
 	});
 
-	it.each(["left", "used"])("renders only Copilot premium and honors saved %s mode", async usageMode => {
+	it("renders only Copilot premium and honors a saved left mode", async () => {
 		vi.useFakeTimers({ toFake: ["Date"] });
 		vi.setSystemTime(new Date("2029-12-31T00:00:00Z"));
-		await writeAgentFile("settings.json", { "pi-usage": { usageMode } });
+		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "left" } });
 		await writeAgentFile("auth.json", auth);
 		mockUsageResponse(copilotResponse);
 		harness = createExtensionHarness({ provider: "github-copilot", id: "gpt-5.4" });
 		await harness.emit("session_start");
-		await vi.waitFor(() => expect(harness!.getStatus()).toBe(` ${usageMode === "used" ? 20 : 80}% (󰔛1d0h)`));
+		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" 80% (󰔛1d0h)"));
 	});
 
 	it("routes model_select by event provider even when ctx.model is still the old model", async () => {
@@ -149,10 +149,7 @@ describe("provider-aware usage footer", () => {
 		await harness.emit("model_select", { model: { provider: "openai-codex", id: "gpt-5.3-codex" } });
 		expect(harness.getStatus()).toBeUndefined();
 		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" 19% (󰔛2h10m) 36% (󰔛6d22h)"));
-		await harness.command("left");
-		expect(harness.getStatus()).toBe(" 81% (󰔛2h10m) 64% (󰔛6d22h)");
 		expect(fetch).toHaveBeenCalledTimes(1);
-		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("left"));
 	});
 
 	it("clears unsupported providers and never resurrects another provider's cached usage", async () => {

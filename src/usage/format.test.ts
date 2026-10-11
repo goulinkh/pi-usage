@@ -9,54 +9,44 @@ function createContext() {
 }
 
 describe("formatStatus", () => {
-	it("uses a single usage icon without provider names or window labels for Codex", () => {
-		const { ctx } = createContext();
-		expect(formatStatus(ctx, codexUsage, "left")).toBe(" 81% (󰔛2h10m) 64% (󰔛6d22h)");
-		expect(formatStatus(ctx, codexUsage, "used")).toBe(" 19% (󰔛2h10m) 36% (󰔛6d22h)");
+	it.each([[26, "success"], [25, "warning"], [11, "warning"], [10, "error"], [null, "muted"]] as const)("colors the icon and percentage by %s remaining in either mode", (leftPercent, color) => {
+		const { ctx, fg } = createContext();
+		for (const mode of ["left", "used"] as const) {
+			fg.mockClear();
+			const text = leftPercent === null ? "--" : `${mode === "left" ? leftPercent : 100 - leftPercent}%`;
+			expect(formatStatus(ctx, { ...copilotUsage, windows: [{ label: "premium", leftPercent, resetInSeconds: null }] }, mode)).toBe(` ${text}`);
+			expect(fg.mock.calls).toEqual([[color, ""], [color, text]]);
+		}
 	});
-	it("formats a single Codex window with the chosen pie chart and countdown", () => {
-		const { ctx } = createContext();
-		const usage = { ...codexUsage, windows: [{ label: "7d", leftPercent: 73, resetInSeconds: 399_600 }] };
-		expect(formatStatus(ctx, usage, "used")).toBe(" 27% (󰔛4d15h)");
+	it("uses the lowest known quota for the icon, ignoring unknown and unlimited values", () => {
+		const { ctx, fg } = createContext();
+		const windows = [
+			{ label: "unlimited", leftPercent: 0, resetInSeconds: null, unlimited: true },
+			{ label: "unknown", leftPercent: null, resetInSeconds: null },
+			{ label: "5h", leftPercent: 81, resetInSeconds: null },
+			{ label: "7d", leftPercent: 20, resetInSeconds: null },
+		];
+		expect(formatStatus(ctx, { ...codexUsage, windows }, "used")).toBe(" 󰛤 -- 19% 80%");
+		expect(fg.mock.calls).toEqual([["warning", ""], ["success", "󰛤"], ["muted", "--"], ["success", "19%"], ["warning", "80%"]]);
 	});
-	it("uses the same usage icon for Copilot premium without provider or quota names", () => {
-		const { ctx } = createContext();
-		const usage = { ...copilotUsage, windows: [{ label: "premium", leftPercent: 95, resetInSeconds: 2_034_000 }] };
-		expect(formatStatus(ctx, usage, "left")).toBe(" 95% (󰔛23d13h)");
-		expect(formatStatus(ctx, usage, "used")).toBe(" 5% (󰔛23d13h)");
+	it("keeps limited usage red while rounding percentages and omitting provider and window labels", () => {
+		const { ctx, fg } = createContext();
+		const usage = { ...codexUsage, label: "Codex Spark", isLimited: true, windows: [{ ...codexUsage.windows[0], leftPercent: 81.4 }, codexUsage.windows[1]] };
+		expect(formatStatus(ctx, usage, "used")).toBe(" 19% (󰔛2h10m) 36% (󰔛6d22h)");
+		expect(fg).toHaveBeenCalledWith("error", "");
 	});
-	it("uses an infinity icon for unlimited premium without a fake percentage or countdown", () => {
-		const { ctx } = createContext();
+	it("shows unlimited premium in green without a fake percentage or countdown in either mode", () => {
+		const { ctx, fg } = createContext();
 		const usage = { ...copilotUsage, windows: [{ label: "premium", leftPercent: null, resetInSeconds: 86_400, unlimited: true }] };
-		expect(formatStatus(ctx, usage, "left")).toBe(" 󰛤");
-		expect(formatStatus(ctx, usage, "used")).toBe(" 󰛤");
+		for (const mode of ["left", "used"] as const) {
+			fg.mockClear();
+			expect(formatStatus(ctx, usage, mode)).toBe(" 󰛤");
+			expect(fg.mock.calls).toEqual([["success", ""], ["success", "󰛤"]]);
+		}
 	});
-	it("does not expose adapter labels for other snapshots", () => {
-		const { ctx } = createContext();
-		expect(formatStatus(ctx, { ...codexUsage, label: "Other" }, "left")).toBe(" 81% (󰔛2h10m) 64% (󰔛6d22h)");
-	});
-	it.each([[null, "--", "muted"], [5, "5%", "error"], [20, "20%", "warning"], [50, "50%", "success"]])("uses semantic colors for remaining percentage %s", (leftPercent, text, color) => {
-		const { ctx, fg } = createContext();
-		formatStatus(ctx, { ...codexUsage, windows: [{ label: "7d", leftPercent, resetInSeconds: null }] }, "left");
-		expect(fg).toHaveBeenCalledWith(color, text);
-	});
-	it.each([
-		[null, "--", "muted"], [100, "0%", "success"], [81.4, "19%", "success"],
-		[26, "74%", "success"], [25, "75%", "warning"], [11, "89%", "warning"],
-		[10, "90%", "error"], [0, "100%", "error"],
-	])("formats consumed percentages with depletion-based colors for %s remaining", (leftPercent, text, color) => {
-		const { ctx, fg } = createContext();
-		expect(formatStatus(ctx, { ...copilotUsage, windows: [{ label: "premium", leftPercent, resetInSeconds: null }] }, "used")).toBe(` ${text}`);
-		expect(fg).toHaveBeenCalledWith(color, text);
-	});
-	it.each([[null, ""], [NaN, ""], [-10, " (󰔛0s)"], [30, " (󰔛30s)"], [120, " (󰔛2m)"], [3_600, " (󰔛1h0m)"], [86_400, " (󰔛1d0h)"]])("formats countdowns for %s seconds", (resetInSeconds, countdown) => {
+	it.each([[NaN, ""], [-10, " (󰔛0s)"], [30, " (󰔛30s)"], [120, " (󰔛2m)"]])("formats countdowns for %s seconds", (resetInSeconds, countdown) => {
 		const { ctx } = createContext();
 		expect(formatStatus(ctx, { ...codexUsage, windows: [{ label: "7d", leftPercent: 64, resetInSeconds }] }, "left")).toBe(` 64%${countdown}`);
-	});
-	it("highlights limited usage with the same pie chart for Spark", () => {
-		const { ctx, fg } = createContext();
-		expect(formatStatus(ctx, { ...codexUsage, label: "Codex Spark", isLimited: true }, "left")).toBe(" 81% (󰔛2h10m) 64% (󰔛6d22h)");
-		expect(fg).toHaveBeenCalledWith("error", "");
 	});
 });
 

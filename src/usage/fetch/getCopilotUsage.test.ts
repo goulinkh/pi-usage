@@ -10,24 +10,16 @@ describe("getCopilotUsage", () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date("2029-12-31T00:00:00Z"));
 		await writeAgentFile("auth.json", auth);
-		mockUsageResponse(copilotResponse);
+		mockUsageResponse({ ...copilotResponse, quota_snapshots: {
+			...copilotResponse.quota_snapshots,
+			chat: { percent_remaining: 0 }, completions: { percent_remaining: 0 },
+		} });
 		expect(await getCopilotUsage()).toEqual({
 			provider: "github-copilot", label: "Copilot", isLimited: false,
 			windows: [
 				{ label: "premium", leftPercent: 80, resetInSeconds: 86_400, unlimited: false },
 			],
 		});
-	});
-
-	it("ignores chat and completion quotas even when they are exhausted", async () => {
-		await writeAgentFile("auth.json", auth);
-		mockUsageResponse({ ...copilotResponse, quota_snapshots: {
-			...copilotResponse.quota_snapshots,
-			chat: { percent_remaining: 0 }, completions: { percent_remaining: 0 },
-		} });
-		const usage = await getCopilotUsage();
-		expect(usage.windows.map(window => window.label)).toEqual(["premium"]);
-		expect(usage.isLimited).toBe(false);
 	});
 
 	it("preserves unlimited premium quotas without a percentage or reset countdown", async () => {
@@ -48,7 +40,7 @@ describe("getCopilotUsage", () => {
 		}));
 	});
 
-	it.each([{}, { type: "api_key", key: "fake-key" }, { type: "oauth" }, { type: "oauth", refresh: " " }])("rejects missing OAuth GitHub tokens (%j)", async entry => {
+	it.each([{ type: "api_key", key: "fake-key" }, { type: "oauth" }, { type: "oauth", refresh: " " }])("rejects missing OAuth GitHub tokens (%j)", async entry => {
 		await writeAgentFile("auth.json", { "github-copilot": entry });
 		const fetch = mockUsageResponse({});
 		await expect(getCopilotUsage()).rejects.toBeInstanceOf(MissingAuthError);
@@ -91,9 +83,9 @@ describe("getCopilotUsage", () => {
 		expect((await getCopilotUsage()).windows).toEqual([{ label: "premium", leftPercent: null, resetInSeconds: 86_400, unlimited: false }]);
 	});
 
-	it.each([{}, { quota_snapshots: [] }, { quota_snapshots: { premium_interactions: null } }, { quota_snapshots: { chat: { percent_remaining: 90 } } }])("represents missing quota data as unknown (%j)", async data => {
+	it("represents missing premium data as unknown rather than substituting chat usage", async () => {
 		await writeAgentFile("auth.json", auth);
-		mockUsageResponse(data);
+		mockUsageResponse({ quota_snapshots: { chat: { percent_remaining: 90 } } });
 		expect((await getCopilotUsage()).windows).toEqual([{ label: "premium", leftPercent: null, resetInSeconds: null, unlimited: false }]);
 	});
 

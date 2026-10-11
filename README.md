@@ -83,6 +83,8 @@ Percentages use one pie-chart usage icon, without provider names, quota labels, 
 - Codex with a secondary window → ` 19% (󰔛2h10m) 36% (󰔛6d22h)`
 - Copilot premium → ` 5% (󰔛23d13h)`
 
+Colors always reflect **percentage remaining**, even in `used` mode: green above 25%, yellow above 10% through 25%, and red at 10% or below. Each percentage has its own color; the usage icon follows the lowest known remaining quota and turns red when the provider reports a limit. Unknown values are muted; unlimited quotas are green. Colors use pi's active theme.
+
 Codex windows appear in primary-then-secondary order, each with its own reset countdown. Copilot displays only its premium request quota, with GitHub's reported reset date. Chat and completion quotas do not appear or affect the premium quota's limited state. Unlimited premium shows ` 󰛤` in either display mode; missing values show `--`.
 
 ### Nerd Font icons

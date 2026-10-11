@@ -2,12 +2,14 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { USAGE_ICONS } from "./constants";
 import type { PercentMode, Theme, UsageSnapshot } from "./types";
 
-function formatPercent(theme: Theme, leftPercent: number | null, mode: PercentMode): string {
-	if (leftPercent === null) return theme.fg("muted", "--");
+function getRemainingColor(leftPercent: number | null) {
+	if (leftPercent === null) return "muted";
+	return leftPercent <= 10 ? "error" : leftPercent <= 25 ? "warning" : "success";
+}
 
-	const color = leftPercent <= 10 ? "error" : leftPercent <= 25 ? "warning" : "success";
-	const displayed = mode === "left" ? leftPercent : 100 - leftPercent;
-	return theme.fg(color, `${Math.round(displayed)}%`);
+function formatPercent(theme: Theme, leftPercent: number | null, mode: PercentMode): string {
+	const text = leftPercent === null ? "--" : `${Math.round(mode === "left" ? leftPercent : 100 - leftPercent)}%`;
+	return theme.fg(getRemainingColor(leftPercent), text);
 }
 
 function formatCountdown(seconds: number | null): string | null {
@@ -23,10 +25,16 @@ function formatCountdown(seconds: number | null): string | null {
 	return minutes ? `${minutes}m` : `${total % 60}s`;
 }
 
-/** Format bare percentages and reset countdowns with one usage icon, omitting provider/window labels. */
+/** Format percentages and countdowns; colors always reflect remaining quota, regardless of mode.
+ * The shared icon reflects the lowest known quota (unlimited counts as full), or red when limited.
+ */
 export function formatStatus(ctx: ExtensionContext, usage: UsageSnapshot, usageMode: PercentMode): string {
 	const theme = ctx.ui.theme;
-	const title = theme.fg(usage.isLimited ? "error" : "dim", USAGE_ICONS.usage);
+	const remainingPercentages = usage.windows
+		.map(window => window.unlimited ? 100 : window.leftPercent)
+		.filter((percent): percent is number => percent !== null);
+	const lowestRemaining = remainingPercentages.length ? Math.min(...remainingPercentages) : null;
+	const title = theme.fg(usage.isLimited ? "error" : getRemainingColor(lowestRemaining), USAGE_ICONS.usage);
 	const usageText = usage.windows.map(window => {
 		const reset = window.unlimited ? null : formatCountdown(window.resetInSeconds);
 		const resetText = reset ? theme.fg("dim", ` (${USAGE_ICONS.reset}${reset})`) : "";

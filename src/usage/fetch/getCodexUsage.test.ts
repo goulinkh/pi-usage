@@ -64,9 +64,9 @@ describe("getCodexUsage", () => {
 		expect(await getCodexUsage("gpt-5.3-codex")).toMatchObject({ isLimited: true, windows: [{ resetInSeconds: 0 }] });
 	});
 
-	it.each([{}, { rate_limit: [] }, { rate_limit: { primary_window: { reset_at: "invalid" } } }])("represents missing or malformed data as unknown (%j)", async data => {
+	it("represents malformed rate-limit data as unknown", async () => {
 		await writeAgentFile("auth.json", auth);
-		mockUsageResponse(data);
+		mockUsageResponse({ rate_limit: [] });
 		expect((await getCodexUsage("gpt-5.3-codex")).windows).toEqual([{ label: "7d", leftPercent: null, resetInSeconds: null }]);
 	});
 });

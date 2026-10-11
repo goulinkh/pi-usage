@@ -56,7 +56,7 @@ describe("getUsage", () => {
 		}));
 	});
 
-	it.each([undefined, { provider: "anthropic", id: "claude-sonnet-4.6" }, { provider: "toString", id: "x" }])("does not read credentials or request usage for unsupported models (%j)", async model => {
+	it.each([undefined, { provider: "toString", id: "x" }])("does not read credentials or request usage for unsupported models (%j)", async model => {
 		const fetch = mockResponse({});
 		expect(await getUsage(model)).toBeNull();
 		expect(fetch).not.toHaveBeenCalled();

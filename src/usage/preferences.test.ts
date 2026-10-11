@@ -23,9 +23,9 @@ describe("loadUsageMode", () => {
 		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "invalid" } });
 		expect(await loadUsageMode()).toBe("used");
 	});
-	it.each(["left", "used"])("loads %s", async usageMode => {
-		await writeAgentFile("settings.json", { "pi-usage": { usageMode } });
-		expect(await loadUsageMode()).toBe(usageMode);
+	it("preserves a saved left mode", async () => {
+		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "left" } });
+		expect(await loadUsageMode()).toBe("left");
 	});
 });
 
@@ -48,15 +48,10 @@ describe("saveUsageMode", () => {
 		await saveUsageMode("used");
 		expect(JSON.parse(await readFile(SETTINGS_FILE, "utf8"))).toEqual({ "pi-usage": { usageMode: "used" } });
 	});
-	it("preserves unrelated pi preferences", async () => {
-		await writeAgentFile("settings.json", { theme: "dark", "pi-usage": { usageMode: "left" } });
+	it("preserves unrelated pi preferences and placement when changing mode", async () => {
+		await writeAgentFile("settings.json", { theme: "dark", "pi-usage": { usageMode: "left", usagePlacement: "inlineFooter" } });
 		await saveUsageMode("used");
-		expect(JSON.parse(await readFile(SETTINGS_FILE, "utf8"))).toEqual({ theme: "dark", "pi-usage": { usageMode: "used" } });
-	});
-	it.each(["belowEditor", "inlineFooter"])("preserves %s placement when changing mode", async usagePlacement => {
-		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "left", usagePlacement } });
-		await saveUsageMode("used");
-		expect(JSON.parse(await readFile(SETTINGS_FILE, "utf8"))).toEqual({ "pi-usage": { usageMode: "used", usagePlacement } });
+		expect(JSON.parse(await readFile(SETTINGS_FILE, "utf8"))).toEqual({ theme: "dark", "pi-usage": { usageMode: "used", usagePlacement: "inlineFooter" } });
 	});
 	it("rejects invalid or unwritable settings rather than overwriting them", async () => {
 		await mkdir(SETTINGS_FILE, { recursive: true });

@@ -12,7 +12,7 @@
     <text x="32" y="267" fill="#8b8b8b">~/dev/pi-usage (main)</text>
     <text x="32" y="297" fill="#8b8b8b">$0.000 (sub) 0.0%/272k</text>
     <text x="1068" y="297" text-anchor="end" fill="#8b8b8b">github-copilot/gpt-5.3-codex • high</text>
-    <g transform="translate(32 308)" fill="none" stroke="#8b8b8b" stroke-width="2" stroke-linejoin="round">
+    <g transform="translate(32 308)" fill="none" stroke="#a6c76e" stroke-width="2" stroke-linejoin="round">
       <path d="M13 2V15H26A13 13 0 1 1 13 2Z"/>
       <path d="M16 1V12H27A11 11 0 0 0 16 1Z"/>
     </g>

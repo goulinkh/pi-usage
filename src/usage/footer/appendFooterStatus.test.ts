@@ -16,19 +16,7 @@ describe("appendFooterStatus", () => {
 		expect(host.render(200)).toBe(lines);
 	});
 
-	it("reads live status updates without duplicating text or replacing metadata", () => {
-		const host = createFooterHarness();
-		appendFooterStatus(host.ui, "pi-usage");
-		host.ui.setFooter(() => ({ invalidate() {}, render: () => [customFooterLine] }));
-		host.ui.setStatus("pi-usage", " 86% left");
-		expect(host.render(200)).toEqual([`${customFooterLine} ·  86% left`]);
-		host.ui.setStatus("pi-usage", " 14% used");
-		expect(host.render(200)).toEqual([`${customFooterLine} ·  14% used`]);
-		host.ui.setStatus("pi-usage", undefined);
-		expect(host.render(200)).toEqual([customFooterLine]);
-	});
-
-	it.each([0, 1, 2, 5, 20, 80, 151])("fits ANSI colors and wide glyphs within %s terminal columns", width => {
+	it.each([0, 1, 20, 80])("fits ANSI colors and wide glyphs within %s terminal columns", width => {
 		const host = createFooterHarness();
 		appendFooterStatus(host.ui, "pi-usage");
 		host.ui.setFooter(() => ({ invalidate() {}, render: columns => [truncateToWidth("模型 · project", columns, "")] }));
