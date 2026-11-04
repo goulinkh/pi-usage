@@ -2,7 +2,7 @@
 import { SPARK_MODEL_ID } from "./constants";
 import getCodexUsage from "./fetch/getCodexUsage";
 import getCopilotUsage from "./fetch/getCopilotUsage";
-import type { UsageModel, UsageSnapshot } from "./types";
+import type { UsageModel, UsageModelProviders, UsageSnapshot } from "./types";
 
 type UsageAdapter = {
 	getLabel: (modelId: string) => string;
@@ -14,14 +14,19 @@ const providers = new Map<string, UsageAdapter>([
 	["github-copilot", { getLabel: () => "Copilot", fetchUsage: getCopilotUsage }],
 ]);
 
-/** Return a supported model's usage label, or undefined for an unsupported provider. */
-export function getUsageLabel(model: UsageModel | undefined): string | undefined {
-	return model ? providers.get(model.provider)?.getLabel(model.id) : undefined;
+function getAdapter(model: UsageModel, modelProviders: UsageModelProviders): UsageAdapter | undefined {
+	const provider = modelProviders[`${model.provider}/${model.id}`] ?? model.provider;
+	return providers.get(provider);
 }
 
-/** Retrieve usage for the selected provider, or null without I/O when unsupported.
+/** Return the mapped or selected provider's usage label, or undefined when unsupported. */
+export function getUsageLabel(model: UsageModel | undefined, modelProviders: UsageModelProviders = {}): string | undefined {
+	return model ? getAdapter(model, modelProviders)?.getLabel(model.id) : undefined;
+}
+
+/** Retrieve usage for the mapped or selected provider, or null without I/O when unsupported.
  * @note Supported adapters read pi's authentication file and make an external usage request.
  */
-export async function getUsage(model: UsageModel | undefined): Promise<UsageSnapshot | null> {
-	return model ? providers.get(model.provider)?.fetchUsage(model.id) ?? null : null;
+export async function getUsage(model: UsageModel | undefined, modelProviders: UsageModelProviders = {}): Promise<UsageSnapshot | null> {
+	return model ? getAdapter(model, modelProviders)?.fetchUsage(model.id) ?? null : null;
 }

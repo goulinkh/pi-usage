@@ -29,7 +29,9 @@ Codex usage belongs to the `openai-codex` account, not the `openai` account. Cop
 
 The footer follows the selected model's **provider**, not its model name. For example, a GPT model served by Copilot shows Copilot quotas rather than Codex usage. Switching providers clears the previous provider's footer immediately; late requests cannot overwrite the new provider's status.
 
-**Behavior change from the Codex-only extension:** unsupported providers and accounts without OAuth credentials now hide the usage footer, rather than showing Codex usage regardless of provider. Retrieval failures show the usage icon followed by `unavailable`.
+For a router backed by one quota provider, configure an exact model mapping with `modelProviders` (see below). This keeps account usage visible before the router chooses a model. Unmapped models still follow their selected provider.
+
+**Behavior change from the Codex-only extension:** unsupported, unmapped providers and accounts without OAuth credentials now hide the usage footer, rather than showing Codex usage regardless of provider. Retrieval failures show the usage icon followed by `unavailable`.
 
 Usage refreshes on session startup, model changes, turn completion, and every 60 seconds. Both providers use account-level usage, not token usage for the current pi session. The providers' usage endpoints are internal APIs and may change.
 
@@ -56,6 +58,21 @@ The extension persists the display preference in pi's `settings.json` under:
 - Settings file path: `$PI_CODING_AGENT_DIR/settings.json`
 - Fallback when the environment variable is unset: `~/.pi/agent/settings.json`
 - The default is now `usageMode: "used"` (percentage consumed). Existing saved `"left"` preferences are preserved; run `/usage-mode used` to switch.
+- `modelProviders` maps exact `provider/model` references to `"openai-codex"` or `"github-copilot"` for quota retrieval. For example, to show Codex percentages while the Codex-only GPT Auto router is selected:
+
+  ```json
+  {
+    "pi-usage": {
+      "usageMode": "used",
+      "usagePlacement": "inlineFooter",
+      "modelProviders": {
+        "auto/gpt-auto": "openai-codex"
+      }
+    }
+  }
+  ```
+
+  This affects only usage retrieval, not generation or model routing. It uses the mapped provider's existing OAuth credentials. Mappings are static, not inferred from model names or the last response; use them only for routers whose routes share that quota provider. Invalid mappings are ignored. Run `/reload` after changes. `/usage-mode` preserves mappings.
 - `usagePlacement` defaults to `"footer"`, using pi's extension status API.
 - For **one line** with a custom footer that ignores extension statuses (for example `better-claude-code-ui`), use `"inlineFooter"` and list pi-usage **before** that UI package:
 

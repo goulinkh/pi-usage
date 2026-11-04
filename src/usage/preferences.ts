@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { DEFAULT_USAGE_MODE, DEFAULT_USAGE_PLACEMENT } from "./constants";
 import { asObject } from "./domain";
-import type { JsonObject, PercentMode, UsagePreferences } from "./types";
+import type { JsonObject, PercentMode, UsageModelProviders, UsagePreferences } from "./types";
 
 export const SETTINGS_KEY = "pi-usage";
 
@@ -28,14 +28,21 @@ async function writeJson(file: string, value: unknown): Promise<void> {
 	await fs.writeFile(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-/** Read display mode and placement together, defaulting invalid or absent values.
+/** Read display preferences and exact model-to-provider mappings, ignoring invalid values.
  * @note Reads pi's settings file once for a consistent preference snapshot.
  */
 export async function loadUsagePreferences(): Promise<UsagePreferences> {
 	const preferences = asObject((await readJsonObject(SETTINGS_FILE))[SETTINGS_KEY]);
 	const usageMode = preferences?.usageMode;
 	const usagePlacement = preferences?.usagePlacement;
+	const modelProviders: UsageModelProviders = {};
+	for (const [model, provider] of Object.entries(asObject(preferences?.modelProviders) ?? {})) {
+		if (/^[^/]+\/.+$/u.test(model) && (provider === "openai-codex" || provider === "github-copilot")) {
+			modelProviders[model] = provider;
+		}
+	}
 	return {
+		...(Object.keys(modelProviders).length ? { modelProviders } : {}),
 		usageMode: usageMode === "left" || usageMode === "used" ? usageMode : DEFAULT_USAGE_MODE,
 		usagePlacement: usagePlacement === "belowEditor" || usagePlacement === "inlineFooter" ? usagePlacement : DEFAULT_USAGE_PLACEMENT,
 	};

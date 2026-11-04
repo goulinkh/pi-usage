@@ -9,4 +9,4 @@ export { formatStatus, unavailableStatus } from "./format";
 export { default as appendFooterStatus } from "./footer/appendFooterStatus";
 export { loadUsageMode, loadUsagePreferences, saveUsageMode, SETTINGS_FILE } from "./preferences";
 export { getUsage, getUsageLabel } from "./usage";
-export type { PercentMode, UsageModel, UsagePlacement, UsageSnapshot } from "./types";
+export type { PercentMode, UsageModel, UsageModelProviders, UsagePlacement, UsageSnapshot } from "./types";

@@ -7,9 +7,15 @@ export type PercentMode = "left" | "used";
  * @experimental inlineFooter wraps the public UI callback and requires loading before the custom footer.
  */
 export type UsagePlacement = "footer" | "belowEditor" | "inlineFooter";
-export type UsagePreferences = { usageMode: PercentMode; usagePlacement: UsagePlacement };
+export type UsagePreferences = {
+	usageMode: PercentMode;
+	usagePlacement: UsagePlacement;
+	modelProviders?: UsageModelProviders;
+};
 export type Theme = ExtensionContext["ui"]["theme"];
 export type UsageProvider = "openai-codex" | "github-copilot";
+/** Explicit quota-provider mappings keyed by an exact provider/model reference. */
+export type UsageModelProviders = Record<string, UsageProvider>;
 export type UsageModel = { provider: string; id: string };
 
 /** A provider-labelled quota; null values mean the API did not supply a usable value. */

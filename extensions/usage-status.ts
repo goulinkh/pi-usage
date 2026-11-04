@@ -3,7 +3,7 @@ import {
 	appendFooterStatus, DEFAULT_USAGE_MODE, DEFAULT_USAGE_PLACEMENT, errorMessage, formatStatus, getUsage, getUsageLabel,
 	loadUsagePreferences, MissingAuthError, parseUsageMode, saveUsageMode, SETTINGS_FILE,
 	unavailableStatus, usageModeCompletions,
-	type PercentMode, type UsageModel, type UsagePlacement, type UsageSnapshot,
+	type PercentMode, type UsageModel, type UsageModelProviders, type UsagePlacement, type UsageSnapshot,
 } from "#usage";
 
 const EXTENSION_ID = "pi-usage";
@@ -20,6 +20,7 @@ class UsageStatus {
 	private lastUsage?: UsageSnapshot;
 	private usageMode: PercentMode = DEFAULT_USAGE_MODE;
 	private usagePlacement: UsagePlacement = DEFAULT_USAGE_PLACEMENT;
+	private modelProviders: UsageModelProviders = {};
 	private usageModeRevision = 0;
 	private settingsQueue: Promise<void> = Promise.resolve();
 	private restoreFooter?: () => void;
@@ -101,11 +102,13 @@ class UsageStatus {
 			const preferences = await this.enqueueSettingsOperation(() => loadUsagePreferences());
 			if (this.isCurrent(generation)) {
 				this.usagePlacement = preferences.usagePlacement;
+				this.modelProviders = preferences.modelProviders ?? {};
 				if (this.usageModeRevision === revision) this.usageMode = preferences.usageMode;
 			}
 		} catch (error) {
 			if (!this.isCurrent(generation)) return;
 			this.usagePlacement = DEFAULT_USAGE_PLACEMENT;
+			this.modelProviders = {};
 			const changedDuringLoad = this.usageModeRevision !== revision;
 			if (!changedDuringLoad) this.usageMode = DEFAULT_USAGE_MODE;
 			if (ctx.hasUI) {
@@ -117,7 +120,7 @@ class UsageStatus {
 
 	private async refresh(ctx = this.ctx, model = this.model, generation = this.generation, revision = this.modelRevision): Promise<void> {
 		if (!ctx?.hasUI || !this.isCurrent(generation)) return;
-		const label = getUsageLabel(model);
+		const label = getUsageLabel(model, this.modelProviders);
 		if (!label) {
 			this.lastUsage = undefined;
 			this.setUsageStatus(ctx, undefined);
@@ -130,7 +133,7 @@ class UsageStatus {
 
 		this.inFlight = true;
 		try {
-			const usage = await getUsage(model);
+			const usage = await getUsage(model, this.modelProviders);
 			if (!this.isCurrent(generation) || revision !== this.modelRevision) return;
 			this.lastUsage = usage ?? undefined;
 			this.setUsageStatus(ctx, usage ? formatStatus(ctx, usage, this.usageMode) : undefined);
