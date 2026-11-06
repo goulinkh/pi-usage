@@ -9,7 +9,7 @@ function createContext() {
 }
 
 describe("formatStatus", () => {
-	it.each([[26, "success"], [25, "warning"], [11, "warning"], [10, "error"], [null, "muted"]] as const)("colors the icon and percentage by %s remaining in either mode", (leftPercent, color) => {
+	it.each([[36, "muted"], [35, "warning"], [30, "warning"], [16, "warning"], [15, "error"], [0, "error"], [null, "muted"]] as const)("colors the icon and percentage by %s remaining in either mode", (leftPercent, color) => {
 		const { ctx, fg } = createContext();
 		for (const mode of ["left", "used"] as const) {
 			fg.mockClear();
@@ -27,7 +27,7 @@ describe("formatStatus", () => {
 			{ label: "7d", leftPercent: 20, resetInSeconds: null },
 		];
 		expect(formatStatus(ctx, { ...codexUsage, windows }, "used")).toBe(" 󰛤 -- 19% 80%");
-		expect(fg.mock.calls).toEqual([["warning", ""], ["success", "󰛤"], ["muted", "--"], ["success", "19%"], ["warning", "80%"]]);
+		expect(fg.mock.calls).toEqual([["warning", ""], ["muted", "󰛤"], ["muted", "--"], ["muted", "19%"], ["warning", "80%"]]);
 	});
 	it("keeps limited usage red while rounding percentages and omitting provider and window labels", () => {
 		const { ctx, fg } = createContext();
@@ -35,13 +35,13 @@ describe("formatStatus", () => {
 		expect(formatStatus(ctx, usage, "used")).toBe(" 19% (󰔛2h10m) 36% (󰔛6d22h)");
 		expect(fg).toHaveBeenCalledWith("error", "");
 	});
-	it("shows unlimited premium in green without a fake percentage or countdown in either mode", () => {
+	it("shows unlimited premium muted without a fake percentage or countdown in either mode", () => {
 		const { ctx, fg } = createContext();
 		const usage = { ...copilotUsage, windows: [{ label: "premium", leftPercent: null, resetInSeconds: 86_400, unlimited: true }] };
 		for (const mode of ["left", "used"] as const) {
 			fg.mockClear();
 			expect(formatStatus(ctx, usage, mode)).toBe(" 󰛤");
-			expect(fg.mock.calls).toEqual([["success", ""], ["success", "󰛤"]]);
+			expect(fg.mock.calls).toEqual([["muted", ""], ["muted", "󰛤"]]);
 		}
 	});
 	it.each([[NaN, ""], [-10, " (󰔛0s)"], [30, " (󰔛30s)"], [120, " (󰔛2m)"]])("formats countdowns for %s seconds", (resetInSeconds, countdown) => {

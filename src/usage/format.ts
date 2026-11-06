@@ -4,12 +4,13 @@ import type { PercentMode, Theme, UsageSnapshot } from "./types";
 
 function getRemainingColor(leftPercent: number | null) {
 	if (leftPercent === null) return "muted";
-	return leftPercent <= 10 ? "error" : leftPercent <= 25 ? "warning" : "success";
+	return leftPercent <= 15 ? "error" : leftPercent <= 35 ? "warning" : "muted";
 }
 
 function formatPercent(theme: Theme, leftPercent: number | null, mode: PercentMode): string {
 	const text = leftPercent === null ? "--" : `${Math.round(mode === "left" ? leftPercent : 100 - leftPercent)}%`;
-	return theme.fg(getRemainingColor(leftPercent), text);
+	const color = getRemainingColor(leftPercent);
+	return theme.fg(color, text);
 }
 
 function formatCountdown(seconds: number | null): string | null {
@@ -34,11 +35,12 @@ export function formatStatus(ctx: ExtensionContext, usage: UsageSnapshot, usageM
 		.map(window => window.unlimited ? 100 : window.leftPercent)
 		.filter((percent): percent is number => percent !== null);
 	const lowestRemaining = remainingPercentages.length ? Math.min(...remainingPercentages) : null;
-	const title = theme.fg(usage.isLimited ? "error" : getRemainingColor(lowestRemaining), USAGE_ICONS.usage);
+	const color = usage.isLimited ? "error" : getRemainingColor(lowestRemaining);
+	const title = theme.fg(color, USAGE_ICONS.usage);
 	const usageText = usage.windows.map(window => {
 		const reset = window.unlimited ? null : formatCountdown(window.resetInSeconds);
-		const resetText = reset ? theme.fg("dim", ` (${USAGE_ICONS.reset}${reset})`) : "";
-		const percent = window.unlimited ? theme.fg("success", USAGE_ICONS.unlimited) : formatPercent(theme, window.leftPercent, usageMode);
+		const resetText = reset ? theme.fg("muted", ` (${USAGE_ICONS.reset}${reset})`) : "";
+		const percent = window.unlimited ? theme.fg("muted", USAGE_ICONS.unlimited) : formatPercent(theme, window.leftPercent, usageMode);
 		return `${percent}${resetText}`;
 	}).join(" ");
 	return `${title} ${usageText}`;
