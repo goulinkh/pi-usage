@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auth, codexResponse, copilotResponse, sparkLimit } from "../../testing/fixtures";
+import { anthropicResponse, auth, codexResponse, copilotResponse, sparkLimit } from "../../testing/fixtures";
 import mockResponse from "../../testing/mockUsageResponse";
 import writeAgentFile from "../../testing/writeAgentFile";
 import { getUsage, getUsageLabel } from "./usage";
@@ -9,6 +9,8 @@ describe("getUsageLabel", () => {
 		expect(getUsageLabel({ provider: "openai-codex", id: "gpt-5.3-codex" })).toBe("Codex");
 		expect(getUsageLabel({ provider: "openai-codex", id: "gpt-5.3-codex-spark" })).toBe("Codex Spark");
 		expect(getUsageLabel({ provider: "github-copilot", id: "gpt-5.3-codex-spark" })).toBe("Copilot");
+		expect(getUsageLabel({ provider: "anthropic", id: "claude-opus-4-5" })).toBe("Claude");
+		expect(getUsageLabel({ provider: "router", id: "claude" }, { "router/claude": "anthropic" })).toBe("Claude");
 		expect(getUsageLabel({ provider: "unknown", id: "model" })).toBeUndefined();
 		expect(getUsageLabel(undefined)).toBeUndefined();
 	});
@@ -54,6 +56,14 @@ describe("getUsage", () => {
 		expect(fetch).toHaveBeenCalledWith("https://api.github.com/copilot_internal/user", expect.objectContaining({
 			headers: expect.objectContaining({ Authorization: "Bearer github-test-token" }),
 		}));
+	});
+
+	it("fetches Claude subscription usage for a mapped router model with that model's family cap", async () => {
+		await writeAgentFile("auth.json", { anthropic: auth.anthropic });
+		const fetch = mockResponse(anthropicResponse);
+		const usage = await getUsage({ provider: "router", id: "claude-opus" }, { "router/claude-opus": "anthropic" });
+		expect(usage).toMatchObject({ provider: "anthropic", label: "Claude", windows: [{ label: "5h" }, { label: "7d" }, { label: "7d model", leftPercent: 45 }] });
+		expect(fetch.mock.calls[0][0]).toBe("https://api.anthropic.com/api/oauth/usage");
 	});
 
 	it.each([undefined, { provider: "toString", id: "x" }])("does not read credentials or request usage for unsupported models (%j)", async model => {

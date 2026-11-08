@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import createDeferred from "../../../testing/createDeferred";
 import createExtensionHarness from "../../../testing/createExtensionHarness";
-import { auth, codexResponse, copilotResponse, customFooterLine } from "../../../testing/fixtures";
+import { anthropicResponse, auth, codexResponse, copilotResponse, customFooterLine } from "../../../testing/fixtures";
 import mockUsageResponse from "../../../testing/mockUsageResponse";
 import writeAgentFile from "../../../testing/writeAgentFile";
 import { loadUsageMode, SETTINGS_FILE } from "../../usage/preferences";
@@ -40,7 +40,7 @@ describe("provider-aware usage footer", () => {
 			expect(lines).toHaveLength(1);
 			expect(visibleWidth(lines[0])).toBeLessThanOrEqual(width);
 		}
-		await harness.emit("model_select", { model: { provider: "anthropic", id: "claude" } });
+		await harness.emit("model_select", { model: { provider: "openrouter", id: "auto" } });
 		expect(harness.renderFooter(200)).toEqual([customFooterLine]);
 		await harness.emit("session_shutdown");
 		expect(harness.ctx.ui.setFooter).toBe(harness.setFooter);
@@ -94,7 +94,7 @@ describe("provider-aware usage footer", () => {
 		await harness.command("left");
 		expect(harness.setWidget).toHaveBeenLastCalledWith("pi-usage", [expect.stringMatching(/^ 80%/)], { placement: "belowEditor" });
 		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("left"));
-		await harness.emit("model_select", { model: { provider: "anthropic", id: "claude" } });
+		await harness.emit("model_select", { model: { provider: "openrouter", id: "auto" } });
 		expect(harness.setWidget).toHaveBeenLastCalledWith("pi-usage", undefined, { placement: "belowEditor" });
 		await harness.emit("session_shutdown");
 		expect(harness.setWidget).toHaveBeenLastCalledWith("pi-usage", undefined, { placement: "belowEditor" });
@@ -143,6 +143,18 @@ describe("provider-aware usage footer", () => {
 		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" 80% (󰔛1d0h)"));
 	});
 
+	it("renders Claude session, weekly, and model-family windows for the anthropic provider", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date("2030-01-01T00:00:00Z"));
+		await writeAgentFile("auth.json", auth);
+		mockUsageResponse(anthropicResponse);
+		harness = createExtensionHarness({ provider: "anthropic", id: "claude-opus-4-5" });
+		await harness.emit("session_start");
+		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" 12% (󰔛2h0m) 30% (󰔛3d0h) 55% (󰔛4d0h)"));
+		await harness.emit("model_select", { model: { provider: "anthropic", id: "claude-sonnet-4-5" } });
+		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" 12% (󰔛2h0m) 30% (󰔛3d0h)"));
+	});
+
 	it("routes model_select by event provider even when ctx.model is still the old model", async () => {
 		harness = await startCopilot();
 		const fetch = mockUsageResponse(codexResponse);
@@ -155,7 +167,7 @@ describe("provider-aware usage footer", () => {
 	it("clears unsupported providers and never resurrects another provider's cached usage", async () => {
 		harness = await startCopilot();
 		const fetch = mockUsageResponse(codexResponse);
-		await harness.emit("model_select", { model: { provider: "anthropic", id: "claude-sonnet-4.6" } });
+		await harness.emit("model_select", { model: { provider: "openrouter", id: "anthropic/claude-sonnet-4.6" } });
 		await harness.command("used");
 		await harness.emit("turn_end");
 		expect(harness.getStatus()).toBeUndefined();
@@ -209,7 +221,7 @@ describe("provider-aware usage footer", () => {
 		await harness.emit("session_start");
 		await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
 		await harness.emit("model_select", { model: { provider: "github-copilot", id: "gpt-5.4" } });
-		await harness.emit("model_select", { model: { provider: "anthropic", id: "claude" } });
+		await harness.emit("model_select", { model: { provider: "openrouter", id: "auto" } });
 		pending.resolve(new Response(JSON.stringify(codexResponse)));
 		await new Promise(resolve => setTimeout(resolve, 30));
 		expect(harness.getStatus()).toBeUndefined();

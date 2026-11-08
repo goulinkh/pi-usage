@@ -13,7 +13,7 @@ export type UsagePreferences = {
 	modelProviders?: UsageModelProviders;
 };
 export type Theme = ExtensionContext["ui"]["theme"];
-export type UsageProvider = "openai-codex" | "github-copilot";
+export type UsageProvider = "openai-codex" | "github-copilot" | "anthropic";
 /** Explicit quota-provider mappings keyed by an exact provider/model reference. */
 export type UsageModelProviders = Record<string, UsageProvider>;
 export type UsageModel = { provider: string; id: string };

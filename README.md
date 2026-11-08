@@ -2,7 +2,7 @@
 
 ![pi-usage footer preview](assets/pi-usage-screen.svg)
 
-Footer status extension for [pi](https://github.com/earendil-works/pi-mono/tree/main/packages/coding-agent) that shows account usage for the selected model's provider. Supports **Codex** and **GitHub Copilot**.
+Footer status extension for [pi](https://github.com/earendil-works/pi-mono/tree/main/packages/coding-agent) that shows account usage for the selected model's provider. Supports **Codex**, **GitHub Copilot**, and **Claude** (Anthropic subscription).
 
 ## Install
 
@@ -20,10 +20,11 @@ Sign in to the providers you use with pi's OAuth login:
 | --- | --- | --- |
 | Codex (`openai-codex`) | `/login openai-codex` | Codex rate-limit windows, including separate Spark limits. |
 | Copilot (`github-copilot`) | `/login github-copilot` | Premium request quota only; chat and completions are not displayed. |
+| Claude (`anthropic`) | `/login anthropic` | Claude Pro/Max 5-hour session and 7-day windows, plus the selected model family's weekly cap (for example Opus) when reported. |
 
 Credentials are read from `$PI_CODING_AGENT_DIR/auth.json`, falling back to `~/.pi/agent/auth.json`. The extension never writes or refreshes credentials. Stored OAuth credentials are required; API-key entries are not supported.
 
-Codex usage belongs to the `openai-codex` account, not the `openai` account. Copilot usage uses the GitHub token stored in pi's OAuth `refresh` field, not its short-lived inference `access` token. GitHub Enterprise domains configured during pi login are respected.
+Codex usage belongs to the `openai-codex` account, not the `openai` account. Copilot usage uses the GitHub token stored in pi's OAuth `refresh` field, not its short-lived inference `access` token. GitHub Enterprise domains configured during pi login are respected. Claude usage uses the subscription OAuth `access` token; Anthropic API keys have no subscription windows. Because the extension never refreshes tokens, an expired Claude token shows `unavailable` until pi refreshes it on the next Claude request.
 
 ## Provider selection
 
@@ -33,7 +34,7 @@ For a router backed by one quota provider, configure an exact model mapping with
 
 **Behavior change from the Codex-only extension:** unsupported, unmapped providers and accounts without OAuth credentials now hide the usage footer, rather than showing Codex usage regardless of provider. Retrieval failures show the usage icon followed by `unavailable`.
 
-Usage refreshes on session startup, model changes, turn completion, and every 60 seconds. Both providers use account-level usage, not token usage for the current pi session. The providers' usage endpoints are internal APIs and may change.
+Usage refreshes on session startup, model changes, turn completion, and every 60 seconds. All providers use account-level usage, not token usage for the current pi session. The providers' usage endpoints are internal APIs and may change.
 
 ## Commands
 
@@ -58,7 +59,7 @@ The extension persists the display preference in pi's `settings.json` under:
 - Settings file path: `$PI_CODING_AGENT_DIR/settings.json`
 - Fallback when the environment variable is unset: `~/.pi/agent/settings.json`
 - The default is now `usageMode: "used"` (percentage consumed). Existing saved `"left"` preferences are preserved; run `/usage-mode used` to switch.
-- `modelProviders` maps exact `provider/model` references to `"openai-codex"` or `"github-copilot"` for quota retrieval. For example, to show Codex percentages while the Codex-only GPT Auto router is selected:
+- `modelProviders` maps exact `provider/model` references to `"openai-codex"`, `"github-copilot"`, or `"anthropic"` for quota retrieval. For example, to show Codex percentages while the Codex-only GPT Auto router is selected:
 
   ```json
   {
@@ -99,10 +100,11 @@ Percentages use one pie-chart usage icon, without provider names, quota labels, 
 - Codex with only a primary window → ` 27% (󰔛4d15h)`
 - Codex with a secondary window → ` 19% (󰔛2h10m) 36% (󰔛6d22h)`
 - Copilot premium → ` 5% (󰔛23d13h)`
+- Claude with Opus selected → ` 12% (󰔛2h0m) 30% (󰔛3d0h) 55% (󰔛4d0h)`
 
 Colors always reflect **percentage remaining**, even in `used` mode: green above 25%, yellow above 10% through 25%, and red at 10% or below. Each percentage has its own color; the usage icon follows the lowest known remaining quota and turns red when the provider reports a limit. Unknown values are muted; unlimited quotas are green. Colors use pi's active theme.
 
-Codex windows appear in primary-then-secondary order, each with its own reset countdown. Copilot displays only its premium request quota, with GitHub's reported reset date. Chat and completion quotas do not appear or affect the premium quota's limited state. Unlimited premium shows ` 󰛤` in either display mode; missing values show `--`.
+Codex windows appear in primary-then-secondary order, each with its own reset countdown. Claude windows appear as session (5h), all-model weekly (7d), then the selected model family's weekly cap; a Claude window at 100% marks the account limited unless extra usage is enabled. Copilot displays only its premium request quota, with GitHub's reported reset date. Chat and completion quotas do not appear or affect the premium quota's limited state. Unlimited premium shows ` 󰛤` in either display mode; missing values show `--`.
 
 ### Nerd Font icons
 

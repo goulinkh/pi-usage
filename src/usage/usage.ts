@@ -1,5 +1,6 @@
 /** Provider routing keeps model IDs from being mistaken for authentication provider identities. */
 import { SPARK_MODEL_ID } from "./constants";
+import getAnthropicUsage from "./fetch/getAnthropicUsage";
 import getCodexUsage from "./fetch/getCodexUsage";
 import getCopilotUsage from "./fetch/getCopilotUsage";
 import type { UsageModel, UsageModelProviders, UsageSnapshot } from "./types";
@@ -12,6 +13,7 @@ type UsageAdapter = {
 const providers = new Map<string, UsageAdapter>([
 	["openai-codex", { getLabel: id => id === SPARK_MODEL_ID ? "Codex Spark" : "Codex", fetchUsage: getCodexUsage }],
 	["github-copilot", { getLabel: () => "Copilot", fetchUsage: getCopilotUsage }],
+	["anthropic", { getLabel: () => "Claude", fetchUsage: getAnthropicUsage }],
 ]);
 
 function getAdapter(model: UsageModel, modelProviders: UsageModelProviders): UsageAdapter | undefined {

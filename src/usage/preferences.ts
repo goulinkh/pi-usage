@@ -37,7 +37,7 @@ export async function loadUsagePreferences(): Promise<UsagePreferences> {
 	const usagePlacement = preferences?.usagePlacement;
 	const modelProviders: UsageModelProviders = {};
 	for (const [model, provider] of Object.entries(asObject(preferences?.modelProviders) ?? {})) {
-		if (/^[^/]+\/.+$/u.test(model) && (provider === "openai-codex" || provider === "github-copilot")) {
+		if (/^[^/]+\/.+$/u.test(model) && (provider === "openai-codex" || provider === "github-copilot" || provider === "anthropic")) {
 			modelProviders[model] = provider;
 		}
 	}

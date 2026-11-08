@@ -37,6 +37,11 @@ describe("loadUsagePreferences", () => {
 		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "used", usagePlacement } });
 		expect(await loadUsagePreferences()).toEqual({ usageMode: "used", usagePlacement });
 	});
+	it("keeps exact mappings to supported quota providers and ignores invalid ones", async () => {
+		const modelProviders = { "router/claude": "anthropic", "auto/gpt-auto": "openai-codex", "gh/x": "github-copilot" };
+		await writeAgentFile("settings.json", { "pi-usage": { modelProviders: { ...modelProviders, "no-slash": "anthropic", "router/other": "openrouter" } } });
+		expect(await loadUsagePreferences()).toEqual({ usageMode: "used", usagePlacement: "footer", modelProviders });
+	});
 	it("defaults unknown placement values without losing a valid mode", async () => {
 		await writeAgentFile("settings.json", { "pi-usage": { usageMode: "used", usagePlacement: "invalid" } });
 		expect(await loadUsagePreferences()).toEqual({ usageMode: "used", usagePlacement: "footer" });

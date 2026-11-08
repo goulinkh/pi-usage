@@ -2,12 +2,14 @@
   "name": "@goulinkh/pi-usage",
   "version": "0.1.14",
   "type": "module",
-  "description": "Provider-aware usage footer extension for pi, supporting Codex and GitHub Copilot",
+  "description": "Provider-aware usage footer extension for pi, supporting Codex, GitHub Copilot, and Claude",
   "keywords": [
     "pi-package",
     "pi-extension",
     "codex",
     "copilot",
+    "claude",
+    "anthropic",
     "usage"
   ],
   "scripts": {

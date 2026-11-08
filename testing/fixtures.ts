@@ -18,6 +18,7 @@ export const copilotUsage: UsageSnapshot = {
 export const auth = {
 	"openai-codex": { type: "oauth", access: "codex-test-token", accountId: "codex-test-account" },
 	"github-copilot": { type: "oauth", access: "short-lived-copilot-token", refresh: "github-test-token" },
+	anthropic: { type: "oauth", access: "anthropic-test-token", refresh: "anthropic-test-refresh", expires: 0 },
 };
 
 export const customFooterLine = "gpt-test · /work/project · ⎇ main · ctx 89% · $2.50 · 1h 11m 44s · 5 turns";
@@ -33,6 +34,14 @@ export const codexResponse = {
 export const sparkLimit = {
 	limit_name: "GPT-5.3-Codex-Spark",
 	rate_limit: { primary_window: { used_percent: 42, reset_after_seconds: 60 }, limit_reached: true },
+};
+
+export const anthropicResponse = {
+	five_hour: { utilization: 12, resets_at: "2030-01-01T02:00:00Z" },
+	seven_day: { utilization: 30, resets_at: "2030-01-04T00:00:00Z" },
+	seven_day_opus: { utilization: 55, resets_at: "2030-01-05T00:00:00Z" },
+	seven_day_sonnet: null,
+	extra_usage: { is_enabled: false },
 };
 
 export const copilotResponse = {
