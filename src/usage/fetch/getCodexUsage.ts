@@ -22,22 +22,23 @@ function selectBucket(data: JsonObject, modelId: string): JsonObject | undefined
 	return undefined;
 }
 
-function getResetSeconds(window: JsonObject | undefined): number | null {
+/** Reset countdowns relative to retrieval are reduced by the response's age, which may come from the shared cache. */
+function getResetSeconds(window: JsonObject | undefined, ageSeconds: number): number | null {
 	const resetAfter = window?.reset_after_seconds;
-	if (typeof resetAfter === "number" && Number.isFinite(resetAfter)) return Math.max(0, resetAfter);
+	if (typeof resetAfter === "number" && Number.isFinite(resetAfter)) return Math.max(0, resetAfter - ageSeconds);
 	const resetAt = window?.reset_at;
 	if (typeof resetAt !== "number" || !Number.isFinite(resetAt)) return null;
 	const resetAtSeconds = resetAt > 100_000_000_000 ? resetAt / 1000 : resetAt;
 	return Math.max(0, resetAtSeconds - Date.now() / 1000);
 }
 
-function parseWindow(label: string, value: unknown): WindowUsage {
+function parseWindow(label: string, value: unknown, ageSeconds: number): WindowUsage {
 	const window = asObject(value);
 	const used = window?.used_percent;
 	return {
 		label,
 		leftPercent: typeof used === "number" && Number.isFinite(used) ? Math.min(100, Math.max(0, 100 - used)) : null,
-		resetInSeconds: getResetSeconds(window),
+		resetInSeconds: getResetSeconds(window, ageSeconds),
 	};
 }
 
@@ -50,17 +51,18 @@ export default async function getCodexUsage(modelId: string): Promise<UsageSnaps
 	const rawAccountId = entry.accountId ?? entry.account_id;
 	const accountId = typeof rawAccountId === "string" ? rawAccountId.trim() : "";
 	if (!accessToken || !accountId) throw new MissingAuthError("openai-codex");
-	const data = await requestUsage(USAGE_URL, "Codex", {
+	const { data, fetchedAt } = await requestUsage(USAGE_URL, "Codex", {
 		accept: "*/*", authorization: `Bearer ${accessToken}`, "chatgpt-account-id": accountId,
 	});
 	const bucket = selectBucket(data, modelId);
 	const secondary = asObject(bucket?.secondary_window);
+	const ageSeconds = Math.max(0, Math.floor((Date.now() - fetchedAt) / 1000));
 	return {
 		provider: "openai-codex",
 		label: modelId === SPARK_MODEL_ID ? "Codex Spark" : "Codex",
 		windows: [
-			...(secondary ? [parseWindow("5h", bucket?.primary_window)] : []),
-			parseWindow("7d", secondary ?? bucket?.primary_window),
+			...(secondary ? [parseWindow("5h", bucket?.primary_window, ageSeconds)] : []),
+			parseWindow("7d", secondary ?? bucket?.primary_window, ageSeconds),
 		],
 		isLimited: bucket?.limit_reached === true || bucket?.allowed === false,
 	};

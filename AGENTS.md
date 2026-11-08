@@ -12,7 +12,7 @@ Read the applicable guides in [docs/code-standards/](docs/code-standards/) befor
 
 - `pi-usage` is a provider-aware footer status extension for pi, supporting Codex, GitHub Copilot, and Claude (Anthropic subscription).
 - `extensions/usage-status.ts` owns extension registration and lifecycle behavior.
-- `src/usage/` owns usage retrieval, formatting, commands, and preferences. `fetch/` contains provider adapters; normalized snapshots carry provider-specific quota labels.
+- `src/usage/` owns usage retrieval, formatting, commands, and preferences. `fetch/` contains provider adapters; normalized snapshots carry provider-specific quota labels. `fetch/requestUsage.ts` and `fetch/usageCache.ts` share one usage request per account across all pi sessions through a file cache and lock; keep new adapters on `requestUsage`.
 - `README.md` documents installation and user-facing commands and settings; `assets/` contains the footer preview.
 - The package is installed from GitHub, not npm. Keep installation instructions accurate.
 - Preserve provider-specific identifiers such as `openai-codex`, `github-copilot`, and `anthropic`; the project rename does not change provider API or authentication contracts.

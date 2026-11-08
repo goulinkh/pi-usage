@@ -10,6 +10,8 @@ export const SETTINGS_KEY = "pi-usage";
 const agentDir = process.env.PI_CODING_AGENT_DIR?.trim() || path.join(os.homedir(), ".pi", "agent");
 export const AUTH_FILE = path.join(agentDir, "auth.json");
 export const SETTINGS_FILE = path.join(agentDir, "settings.json");
+/** Shared by every pi session using this agent directory, so sessions reuse one usage request. */
+export const USAGE_CACHE_DIR = path.join(agentDir, "cache", "pi-usage");
 
 /** Read a JSON object, treating absent files and non-object values as empty.
  * @note Performs filesystem I/O and propagates parse and non-ENOENT failures.

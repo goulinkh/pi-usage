@@ -183,15 +183,32 @@ describe("provider-aware usage footer", () => {
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	it("uses the shared icon for retrieval failures and drops stale cached snapshots", async () => {
+	it("keeps recent usage through a failed refresh, then shows the shared icon once it is too old", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
 		harness = await startCopilot();
 		const fetch = mockUsageResponse({}, 503);
+		vi.setSystemTime(Date.now() + 60_000);
+		await harness.emit("turn_end");
+		await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+		expect(harness.getStatus()).toContain("20%");
+		vi.setSystemTime(Date.now() + 30 * 60_000);
 		await harness.emit("turn_end");
 		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" unavailable"));
 		await harness.command("used");
-		await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-		expect(harness.getStatus()).not.toContain("20%");
 		await vi.waitFor(async () => expect(await loadUsageMode()).toBe("used"));
+		expect(harness.getStatus()).toBe(" unavailable");
+		expect(fetch).toHaveBeenCalledTimes(2);
+	});
+
+	it("shares one Claude request across pi sessions", async () => {
+		await writeAgentFile("auth.json", auth);
+		const fetch = mockUsageResponse(anthropicResponse);
+		const sessions = [createExtensionHarness({ provider: "anthropic", id: "claude-opus-4-5" }), createExtensionHarness({ provider: "anthropic", id: "claude-sonnet-4-5" })];
+		await Promise.all(sessions.map(session => session.emit("session_start")));
+		await vi.waitFor(() => expect(sessions.map(session => session.getStatus()?.split(" ").length)).toEqual([7, 5]));
+		await Promise.all(sessions.map(session => session.emit("turn_end")));
+		await Promise.all(sessions.map(session => session.emit("session_shutdown")));
+		expect(fetch).toHaveBeenCalledTimes(1);
 	});
 
 	it.each(["resolve", "reject"] as const)("ignores stale in-flight Codex %s after switching to Copilot", async outcome => {
@@ -241,7 +258,7 @@ describe("provider-aware usage footer", () => {
 		expect(harness.updates).toEqual([undefined]);
 	});
 
-	it("starts a new session while an old session request is in flight", async () => {
+	it("lets a new session reuse the request an old session still has in flight", async () => {
 		await writeAgentFile("auth.json", auth);
 		const pending = createDeferred<Response>();
 		const fetch = vi.fn().mockImplementationOnce(() => pending.promise).mockImplementation(async () => new Response(JSON.stringify(codexResponse)));
@@ -250,13 +267,13 @@ describe("provider-aware usage footer", () => {
 		await harness.emit("session_start");
 		await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
 		await harness.emit("session_start");
-		pending.resolve(new Response(JSON.stringify(copilotResponse)));
+		pending.resolve(new Response(JSON.stringify(codexResponse)));
 		await vi.waitFor(() => expect(harness!.getStatus()).toBe(" 19% (󰔛2h10m) 36% (󰔛6d22h)"));
-		expect(fetch).toHaveBeenCalledTimes(2);
+		expect(fetch).toHaveBeenCalledTimes(1);
 	});
 
 	it("refreshes once per minute and stops polling on shutdown", async () => {
-		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
 		harness = await startCopilot();
 		const fetch = mockUsageResponse(copilotResponse);
 		await vi.advanceTimersByTimeAsync(60_000);

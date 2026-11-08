@@ -36,7 +36,7 @@ export default async function getCopilotUsage(): Promise<UsageSnapshot> {
 	const entry = await loadOAuthCredentials("github-copilot");
 	const githubToken = typeof entry.refresh === "string" ? entry.refresh.trim() : "";
 	if (!githubToken) throw new MissingAuthError("github-copilot");
-	const data = await requestUsage(getUsageUrl(entry.enterpriseUrl), "Copilot", {
+	const { data } = await requestUsage(getUsageUrl(entry.enterpriseUrl), "Copilot", {
 		Accept: "application/json",
 		Authorization: `Bearer ${githubToken}`,
 		"User-Agent": "GitHubCopilotChat/0.35.0",

@@ -12,6 +12,16 @@ describe("getCodexUsage", () => {
 		expect(await getCodexUsage("gpt-5.3-codex")).toEqual(codexUsage);
 	});
 
+	it("counts relative reset times down from when another session cached the response", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		await writeAgentFile("auth.json", auth);
+		const fetch = mockUsageResponse(codexResponse);
+		await getCodexUsage("gpt-5.3-codex");
+		vi.setSystemTime(Date.now() + 30_000);
+		expect((await getCodexUsage("gpt-5.3-codex")).windows.map(window => window.resetInSeconds)).toEqual([7_770, 597_570]);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
 	it("preserves the single-window seven-day contract and supports account_id", async () => {
 		await writeAgentFile("auth.json", { "openai-codex": { type: "oauth", access: " codex-test-token ", account_id: " codex-test-account " } });
 		const fetch = mockUsageResponse({ rate_limit: { primary_window: { used_percent: 3, reset_after_seconds: 60 } } });

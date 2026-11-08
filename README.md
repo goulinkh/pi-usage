@@ -36,6 +36,8 @@ For a router backed by one quota provider, configure an exact model mapping with
 
 Usage refreshes on session startup, model changes, turn completion, and every 60 seconds. All providers use account-level usage, not token usage for the current pi session. The providers' usage endpoints are internal APIs and may change.
 
+All pi sessions share one usage cache in `$PI_CODING_AGENT_DIR/cache/pi-usage/` (fallback `~/.pi/agent/cache/pi-usage/`), so opening more sessions does not send more requests. Each account is requested at most once a minute for Codex and Copilot, and once every 5 minutes for Claude, whose usage endpoint rate-limits aggressively. A file lock lets one session refresh while the others reuse recent data. A rate-limited request backs off for the provider's `Retry-After` time across every session, and other failures back off for 30 seconds. Until a refresh succeeds, the footer keeps showing the last usage for up to 30 minutes before switching to `unavailable`. Cache files contain only the providers' usage responses; credentials are hashed into file names and never stored. Deleting the directory is safe.
+
 ## Commands
 
 | Command | Effect |

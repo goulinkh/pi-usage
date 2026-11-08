@@ -6,6 +6,8 @@ import { loadOAuthCredentials, requestUsage } from "./requestUsage";
 const USAGE_URL = "https://api.anthropic.com/api/oauth/usage";
 /** A real Claude Code release; Anthropic serves the OAuth usage route to Claude Code clients. */
 const CLAUDE_CODE_VERSION = "2.1.210";
+/** Anthropic rate-limits this route aggressively (Retry-After of minutes), so all sessions share one request per 5 minutes. */
+const USAGE_MAX_AGE_MS = 5 * 60_000;
 
 type Bucket = { utilization: number | null; resetsAt: number | null };
 
@@ -79,13 +81,13 @@ export default async function getAnthropicUsage(modelId: string): Promise<UsageS
 	const entry = await loadOAuthCredentials("anthropic");
 	const accessToken = typeof entry.access === "string" ? entry.access.trim() : "";
 	if (!accessToken) throw new MissingAuthError("anthropic");
-	const data = await requestUsage(USAGE_URL, "Claude", {
+	const { data } = await requestUsage(USAGE_URL, "Claude", {
 		accept: "application/json, text/plain, */*",
 		authorization: `Bearer ${accessToken}`,
 		"anthropic-beta": "oauth-2025-04-20",
 		"content-type": "application/json",
 		"user-agent": `claude-cli/${CLAUDE_CODE_VERSION} (external, cli)`,
-	});
+	}, USAGE_MAX_AGE_MS);
 	const entries = getLimitEntries(data);
 	const fiveHour = parseLegacyBucket(data.five_hour) ?? findLimitBucket(entries, limit => limit.kind === "session");
 	const sevenDay = parseLegacyBucket(data.seven_day) ?? findLimitBucket(entries, limit => limit.kind === "weekly_all");

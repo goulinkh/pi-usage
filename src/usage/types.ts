@@ -18,6 +18,12 @@ export type UsageProvider = "openai-codex" | "github-copilot" | "anthropic";
 export type UsageModelProviders = Record<string, UsageProvider>;
 export type UsageModel = { provider: string; id: string };
 
+/** A provider's raw usage response and when it was retrieved, possibly by another pi session. */
+export type UsageResponse = { data: JsonObject; fetchedAt: number };
+
+/** A shared cache record; `retryAt` delays the next upstream request after a failure or rate limit. */
+export type UsageCacheEntry = { fetchedAt?: number; data?: JsonObject; retryAt?: number; error?: string };
+
 /** A provider-labelled quota; null values mean the API did not supply a usable value. */
 export type WindowUsage = {
 	label: string;
